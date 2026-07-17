@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Custom CSS variables from original design, mapped to Tailwind colors */
+  --bg: #0b1020;
+  --bg2: #0a0f1f;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel2: rgba(255, 255, 255, 0.07);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.67);
+  --border: rgba(255, 255, 255, 0.12);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  --accent: #7c5cff;
+  --accent2: #21d4fd;
+  --ok: #3ddc97;
+  --warn: #ffcc00;
+  --danger: #ff4d6d;
+  --codeBg: rgba(0, 0, 0, 0.26);
+  --codeBorder: rgba(255, 255, 255, 0.12);
+  --lnMuted: rgba(255, 255, 255, 0.35);
+  --lnBg: rgba(255, 255, 255, 0.02);
+  --radius: 16px;
+  --radius2: 14px;
+  --lineHeight: 1.55;
+}
+
+/* Light theme overrides */
+html:not(.dark) {
+  --bg: #f7f8ff;
+  --bg2: #f3f5ff;
+  --panel: rgba(0, 0, 0, 0.04);
+  --panel2: rgba(0, 0, 0, 0.06);
+  --text: rgba(0, 0, 0, 0.86);
+  --muted: rgba(0, 0, 0, 0.58);
+  --border: rgba(0, 0, 0, 0.12);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  --codeBg: rgba(255, 255, 255, 0.70);
+  --codeBorder: rgba(0, 0, 0, 0.12);
+  --lnMuted: rgba(0, 0, 0, 0.35);
+  --lnBg: rgba(0, 0, 0, 0.03);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 600px at 12% -10%, rgba(124, 92, 255, 0.35), transparent 55%),
+    radial-gradient(900px 500px at 92% 0%, rgba(33, 212, 253, 0.22), transparent 50%), var(--bg);
+  color: var(--text);
+}
+
+/* Spinner animation from original design */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: rgba(0, 0, 0, 0.85);
+  animation: spin 0.9s linear infinite;
+}
+
+/* Additional custom styles can go here */

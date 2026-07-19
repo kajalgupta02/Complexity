@@ -5,32 +5,29 @@ export function detectPatterns(
   loops: LoopInfo[]
 ): PatternInfo {
   let hasLogarithmicStep = false;
+  const logStepDetails: { variable: string; operator: string; line: number }[] = [];
   let hasDivideAndConquer = false;
   let hasTailRecursion = false;
 
-  // 1. Check for logarithmic steps in loops (i *=2, i /=2, i >>=1, etc.)
-  const logStepRegex = /\b[A-Za-z_$][\w$]*\s*(\*\=|\/\=|>>\=|<<\=)\s*2\b/;
+  // 1. Check for logarithmic steps in loops
+  const logStepRegex = /\b([A-Za-z_$][\w$]*)\s*(\*=|\/=|>>=|<<=)\s*2\b/g;
   for (const loop of loops) {
     const loopBody = source.slice(loop.startIndex, loop.endIndex + 1);
-    if (logStepRegex.test(loopBody)) {
+    let match;
+    while ((match = logStepRegex.exec(loopBody)) !== null) {
       hasLogarithmicStep = true;
-      break;
     }
   }
 
-  // 2. Check for divide-and-conquer recursion patterns (splits input in half and recurses twice)
-  // Very basic heuristic: checks for calls like fn(arr.slice(0, mid)) and fn(arr.slice(mid))
+  // 2. Check for divide-and-conquer recursion patterns
   const dacRegex = /\b([A-Za-z_$][\w$]*)\s*\([^)]*\/\s*2[^)]*\)\s*.*\b\1\s*\([^)]*\/\s*2[^)]*\)/s;
   if (dacRegex.test(source)) {
     hasDivideAndConquer = true;
   }
 
-  // 3. Check for tail recursion (recursive call is last statement in function)
-  // Simple heuristic: recursive call comes right before a return or closing brace
-  // Not perfect, but good for interviews!
-
   return {
     hasLogarithmicStep,
+    logStepDetails: hasLogarithmicStep ? logStepDetails : undefined,
     hasDivideAndConquer,
     hasTailRecursion,
   };

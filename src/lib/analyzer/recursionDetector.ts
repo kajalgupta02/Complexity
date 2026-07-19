@@ -11,20 +11,22 @@ interface FunctionInfo {
 export function detectRecursion(source: string): RecursionInfo {
   // Step 1: Extract all function definitions and their calls
   const functions = extractFunctions(source);
-  const functionNames = functions.map(f => f.name);
 
   // Step 2: Check for direct recursion
-  const hasDirectRecursion = functions.some(fn =>
-    fn.calls.includes(fn.name)
-  );
+  const directRecursiveFunctions: Array<{ name: string; calls: Array<{ name: string; line: number }> }> = [];
+  for (const fn of functions) {
+    if (fn.calls.includes(fn.name)) {
+      directRecursiveFunctions.push({ name: fn.name, calls: [] });
+    }
+  }
 
   // Step 3: Check for mutual recursion using graph cycle detection
   const hasMutualRecursion = hasCycleInFunctionGraph(functions);
 
   return {
-    hasDirectRecursion,
+    hasDirectRecursion: directRecursiveFunctions.length > 0,
     hasMutualRecursion,
-    functionNames,
+    recursiveFunctions: directRecursiveFunctions,
   };
 }
 
@@ -44,18 +46,18 @@ function extractFunctions(source: string): FunctionInfo[] {
     if (keywordSet.has(name)) continue;
 
     // Find opening brace of function body
-    const openBrace = source.indexOf('{', match.index);
-    if (openBrace === -1) continue;
+    const braceIndex = source.indexOf('{', match.index);
+    if (braceIndex === -1) continue;
 
-    const closeBrace = findMatchingBrace(source, openBrace);
+    const closeBrace = findMatchingBrace(source, braceIndex);
     if (closeBrace === -1) continue;
 
-    const body = source.slice(openBrace + 1, closeBrace);
+    const body = source.slice(braceIndex + 1, closeBrace);
     const calls = extractCalls(body, keywordSet);
 
     functions.push({
       name,
-      bodyStart: openBrace + 1,
+      bodyStart: braceIndex + 1,
       bodyEnd: closeBrace,
       calls,
     });

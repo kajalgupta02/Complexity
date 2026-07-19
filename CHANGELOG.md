@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.2.0] - 2026-07-19
+### Phase 3: Trust & Transparency
+- **Redesigned `AnalysisResult` type** with:
+  - `reasoningChain`: ordered list of `ReasoningStep`s (each step includes rule, evidence, weight, and confidence change)
+  - `timeConfidence` as 0-100 score (instead of high/medium/low)
+  - `whatWouldChange`: list of factors that could impact the estimate
+  - `knownLimitations`: honest list of tool limitations for transparency
+- **Updated loop detection (`loopDetector.ts`)**:
+  - Added `startLine`/`endLine`
+  - Added `bodyText`
+  - Added `hasEarlyBreak` (detects early breaks/returns/throws)
+  - Added `hasUnknownFunctionCalls` (lists functions called inside loops that we can't analyze)
+- **Updated complexity estimation (`complexityEstimator.ts`)**:
+  - Adjusts confidence based on:
+    - Early breaks in loops
+    - Unknown function calls
+    - Ambiguous patterns
+  - Generates clear, evidence-based reasoning steps
+- **Updated `tokenizer.ts`**: Added helper functions `getLineNumber` and `getCodeSnippet` for better evidence display
+- **Updated `recursionDetector.ts`**: Updated to new types
+- **Updated `patternDetector.ts`**: Updated to new types
+
 ## [1.1.0] - 2026-07-18
 ### Phase 2: Analysis Engine Rewrite
 - **Modular TypeScript analysis engine in `src/lib/analyzer/`**

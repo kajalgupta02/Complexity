@@ -1,14 +1,13 @@
 import { LoopInfo, LoopType } from './types';
-import { findMatchingBrace } from './tokenizer';
+import { findMatchingBrace, getLineNumber, getCodeSnippet } from './tokenizer';
 
 export function detectLoops(source: string): LoopInfo[] {
   const loops: LoopInfo[] = [];
   const len = source.length;
+  const seenStartIndices = new Set<number>();
 
   // Step 1: Find all loop candidates (for/while/do)
-  const seenStartIndices = new Set<number>();
   for (let i = 0; i < len; i++) {
-
     // Check for "for ("
     if (i + 4 < len && source.slice(i, i + 4) === 'for ' && source[i + 4] === '(') {
       const loop = extractLoop(source, i, 'for');
@@ -68,7 +67,7 @@ function extractLoop(
   // Step 1: Find closing ')' of the loop condition
   const openParenIndex = source.indexOf('(', startIndex);
   if (openParenIndex === -1) return null;
-  
+
   // Find matching ')' for the '('
   let parenDepth = 1;
   let closeParenIndex = -1;
@@ -81,19 +80,21 @@ function extractLoop(
     }
   }
   if (closeParenIndex === -1) return null;
-  
+
   // Step 2: Now look for '{' or ';' after closeParenIndex
   const searchStart = closeParenIndex + 1;
   let braceIndex = source.indexOf('{', searchStart);
   let semiIndex = source.indexOf(';', searchStart);
   let endIndex = -1;
   let headerText = '';
+  let bodyText = '';
 
   if (braceIndex !== -1 && (semiIndex === -1 || braceIndex < semiIndex)) {
     const closeBrace = findMatchingBrace(source, braceIndex);
     if (closeBrace !== -1) {
       endIndex = closeBrace;
       headerText = source.slice(startIndex, braceIndex).trim();
+      bodyText = source.slice(braceIndex + 1, closeBrace).trim();
     }
   }
 
@@ -101,14 +102,27 @@ function extractLoop(
   if (endIndex === -1) {
     endIndex = semiIndex !== -1 ? semiIndex : Math.min(startIndex + 240, source.length - 1);
     headerText = source.slice(startIndex, endIndex).trim();
+    bodyText = '';
   }
+
+  // Step 3: Analyze loop body
+  const hasEarlyBreak = /\b(break|return|throw)\b/.test(bodyText);
+  const functionCallMatches = bodyText.match(/\b([A-Za-z_$][\w$]*)\s*\(/g) || [];
+  const hasUnknownFunctionCalls: string[] = functionCallMatches
+    .map(match => match.slice(0, -1).trim())
+    .filter(name => !['if', 'for', 'while', 'switch', 'catch', 'do', 'return', 'throw', 'else', 'try', 'finally', 'new', 'typeof', 'void', 'instanceof', 'in'].includes(name));
 
   return {
     type,
     startIndex,
     endIndex,
+    startLine: getLineNumber(source, startIndex),
+    endLine: getLineNumber(source, endIndex),
     headerText,
+    bodyText,
     nestingDepth: 0,
+    hasEarlyBreak,
+    hasUnknownFunctionCalls,
   };
 }
 
@@ -128,11 +142,25 @@ function extractDoWhileLoop(source: string, startIndex: number): LoopInfo | null
   }
 
   const headerText = source.slice(startIndex, braceIndex).trim();
+  const bodyText = source.slice(braceIndex + 1, closeBrace).trim();
+
+  // Step 3: Analyze loop body
+  const hasEarlyBreak = /\b(break|return|throw)\b/.test(bodyText);
+  const functionCallMatches = bodyText.match(/\b([A-Za-z_$][\w$]*)\s*\(/g) || [];
+  const hasUnknownFunctionCalls: string[] = functionCallMatches
+    .map(match => match.slice(0, -1).trim())
+    .filter(name => !['if', 'for', 'while', 'switch', 'catch', 'do', 'return', 'throw', 'else', 'try', 'finally', 'new', 'typeof', 'void', 'instanceof', 'in'].includes(name));
+
   return {
     type: 'do-while',
     startIndex,
     endIndex,
+    startLine: getLineNumber(source, startIndex),
+    endLine: getLineNumber(source, endIndex),
     headerText,
+    bodyText,
     nestingDepth: 0,
+    hasEarlyBreak,
+    hasUnknownFunctionCalls,
   };
 }

@@ -1,5 +1,3 @@
-export type ConfidenceLevel = 'high' | 'medium' | 'low';
-
 export type ComplexityClass =
   | 'O(1)'
   | 'O(log n)'
@@ -17,37 +15,70 @@ export interface LoopInfo {
   type: LoopType;
   startIndex: number;
   endIndex: number;
+  startLine: number;
+  endLine: number;
   headerText: string;
-  nestingDepth: number; // 0-based (outermost loop has depth 0)
+  bodyText: string;
+  nestingDepth: number;
+  hasEarlyBreak: boolean;
+  hasUnknownFunctionCalls: string[]; // names of functions called inside loop
 }
 
 export interface RecursionInfo {
   hasDirectRecursion: boolean;
   hasMutualRecursion: boolean;
-  functionNames: string[];
-  callDepth?: number;
+  recursiveFunctions: Array<{
+    name: string;
+    calls: Array<{
+      name: string;
+      line: number;
+    }>;
+  }>;
 }
 
 export interface PatternInfo {
-  hasLogarithmicStep: boolean; // i *= 2, i /= 2, i >>= 1, etc.
-  hasDivideAndConquer: boolean; // splits input in half and recurses twice (merge/quick sort style)
+  hasLogarithmicStep: boolean;
+  logStepDetails?: { variable: string; operator: string; line: number }[];
+  hasDivideAndConquer: boolean;
   hasTailRecursion: boolean;
 }
 
 export interface SpaceComplexityEstimate {
   class: ComplexityClass;
-  confidence: ConfidenceLevel;
-  notes: string[];
+  reasoning: string[];
+}
+
+export interface ReasoningStep {
+  id: string;
+  title: string;
+  rule: string;
+  evidence: {
+    type: 'code' | 'loop' | 'recursion' | 'pattern';
+    snippet: string;
+    startLine?: number;
+    endLine?: number;
+  }[];
+  weight: number; // 0-100, how much this step contributes to the verdict
+  confidenceChange: number; // +/- to overall confidence
+}
+
+export interface WhatWouldChange {
+  factor: string;
+  impact: string;
+  evidence?: string;
 }
 
 export interface AnalysisResult {
+  version: string;
   timeComplexity: ComplexityClass;
-  timeConfidence: ConfidenceLevel;
+  timeConfidence: number; // 0-100
   spaceComplexity: SpaceComplexityEstimate;
   loops: LoopInfo[];
   recursion: RecursionInfo;
   patterns: PatternInfo;
-  reasoningSteps: string[];
+  reasoningChain: ReasoningStep[];
   detectedPatterns: string[];
+  whatWouldChange: WhatWouldChange[];
+  knownLimitations: string[];
   error?: string;
 }

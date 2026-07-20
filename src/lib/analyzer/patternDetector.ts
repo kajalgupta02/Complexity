@@ -1,9 +1,9 @@
-import { PatternInfo, LoopInfo } from './types';
+import type { PatternInfo, LoopInfo } from './types';
 
 export function detectPatterns(
   source: string,
   loops: LoopInfo[]
-): PatternInfo {
+): Omit<PatternInfo, 'hasImplicitLoops' | 'hasSortCalls'> {
   let hasLogarithmicStep = false;
   const logStepDetails: { variable: string; operator: string; line: number }[] = [];
   let hasDivideAndConquer = false;

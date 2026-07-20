@@ -101,4 +101,29 @@ describe('analyzeCode', () => {
     const result = analyzeCode(code);
     expect(result.loops.length).toBe(0);
   });
+
+  it('should detect implicit loops (array methods)', () => {
+    const code = `function processArray(arr) {
+      arr.map(x => x * 2);
+    }`;
+    const result = analyzeCode(code);
+    expect(result.patterns.hasImplicitLoops).toBe(true);
+    expect(result.timeComplexity).toBe('O(n)');
+  });
+
+  it('should detect sort calls', () => {
+    const code = `function sortArray(arr) {
+      arr.sort();
+    }`;
+    const result = analyzeCode(code);
+    expect(result.patterns.hasSortCalls).toBe(true);
+    expect(result.timeComplexity).toBe('O(n log n)');
+  });
+
+  it('should handle malformed code gracefully (partial analysis)', () => {
+    const code = `function broken() {
+      for (let i = 0; i < n`;
+    const result = analyzeCode(code);
+    expect(result.isPartialAnalysis).toBe(true);
+  });
 });

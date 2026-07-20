@@ -1,4 +1,4 @@
-import {
+import type {
   AnalysisResult,
   ComplexityClass,
   LoopInfo,
@@ -7,6 +7,8 @@ import {
   SpaceComplexityEstimate,
   ReasoningStep,
   WhatWouldChange,
+  StdlibCallInfo,
+  SupportedLanguage,
 } from './types';
 import { getCodeSnippet } from './tokenizer';
 
@@ -14,13 +16,26 @@ export function estimateComplexity(
   source: string,
   loops: LoopInfo[],
   recursion: RecursionInfo,
-  patterns: PatternInfo
-): Omit<AnalysisResult, 'error' | 'loops' | 'recursion' | 'patterns'> {
+  patterns: PatternInfo,
+  stdlibCalls: StdlibCallInfo[],
+  language: SupportedLanguage
+): Omit<AnalysisResult, 'error' | 'loops' | 'recursion' | 'patterns' | 'stdlibCalls' | 'detectedLanguage' | 'isPartialAnalysis'> {
   const reasoningChain: ReasoningStep[] = [];
   const detectedPatterns: string[] = [];
   let timeComplexity: ComplexityClass = 'O(1)';
   let timeConfidence = 100;
   const whatWouldChange: WhatWouldChange[] = [];
+  let hasSortCallInLoop = false;
+
+  // Step 0: Check if any sort calls are inside loops
+  for (const loop of loops) {
+    if (loop.hasSortCall) {
+      hasSortCallInLoop = true;
+      break;
+    }
+  }
+  // Also check standalone sort calls
+  const hasStandaloneSort = stdlibCalls.some(call => call.complexity === 'O(n log n)');
 
   // 1. Recursion analysis
   if (recursion.hasDirectRecursion || recursion.hasMutualRecursion) {
@@ -57,8 +72,27 @@ export function estimateComplexity(
     detectedPatterns.push(`${loops.length} loop(s) detected`);
     if (maxNestingDepth > 0) detectedPatterns.push(`${maxNestingDepth + 1} levels of nesting`);
 
-    // Determine complexity based on nesting and patterns
-    if (maxNestingDepth >= 2) {
+    // Determine complexity based on nesting, patterns, and sort calls
+    if (hasSortCallInLoop) {
+      if (maxNestingDepth === 0) {
+        timeComplexity = 'O(n log n)';
+        timeConfidence = 80;
+      } else if (maxNestingDepth === 1) {
+        timeComplexity = 'O(n² log n)';
+        timeConfidence = 75;
+      } else if (maxNestingDepth >= 2) {
+        timeComplexity = 'O(n³ log n)';
+        timeConfidence = 70;
+      }
+      reasoningChain.push({
+        id: 'loop-with-sort',
+        title: 'Sort call inside loop detected',
+        rule: 'Sort call (O(n log n)) inside loop increases overall complexity',
+        evidence: [],
+        weight: 80,
+        confidenceChange: -20,
+      });
+    } else if (maxNestingDepth >= 2) {
       if (patterns.hasLogarithmicStep) {
         timeComplexity = 'O(n log n)';
         timeConfidence = 75;
@@ -177,20 +211,56 @@ export function estimateComplexity(
           impact: `If ${fnName} is not O(1), actual complexity could be higher than estimated`,
         });
       }
+
+      if (loop.hasHashContainerAccess) {
+        reasoningChain.push({
+          id: `hash-container-access-${loop.startIndex}`,
+          title: 'Hash container access inside loop',
+          rule: 'Hash container get/put/[] access is O(1) average case',
+          evidence: [],
+          weight: 10,
+          confidenceChange: 0,
+        });
+      }
     }
   }
-  // 3. No loops or recursion → O(1)
+  // 3. Standalone sort calls
+  else if (hasStandaloneSort) {
+    timeComplexity = 'O(n log n)';
+    timeConfidence = 85;
+    reasoningChain.push({
+      id: 'standalone-sort',
+      title: 'Standalone sort call detected',
+      rule: 'Sort call → O(n log n)',
+      evidence: stdlibCalls.filter(call => call.complexity === 'O(n log n)').map(call => ({
+        type: 'stdlib-call',
+        snippet: getCodeSnippet(source, call.startIndex, call.endIndex),
+        startLine: call.startLine,
+        endLine: call.endLine,
+      })),
+      weight: 85,
+      confidenceChange: -15,
+    });
+  }
+  // 4. No loops or recursion or sort → O(1)
   else {
     reasoningChain.push({
       id: 'no-loops-recursion',
-      title: 'No loops or recursion detected',
-      rule: 'No loops or recursion → O(1)',
+      title: 'No loops, recursion, or major stdlib calls detected',
+      rule: 'No loops/recursion/sort → O(1)',
       evidence: [],
       weight: 100,
       confidenceChange: 0,
     });
   }
 
+  // Add other known complexity calls
+  for (const call of stdlibCalls) {
+    if (call.complexity !== 'O(n log n)') {
+      detectedPatterns.push(`${call.name} call (${call.complexity})`);
+    }
+  }
+  if (patterns.hasImplicitLoops) detectedPatterns.push('implicit loops (array methods)');
   if (patterns.hasLogarithmicStep) detectedPatterns.push('logarithmic step pattern');
   if (patterns.hasDivideAndConquer) detectedPatterns.push('divide-and-conquer pattern');
 
@@ -208,12 +278,11 @@ export function estimateComplexity(
   const knownLimitations = [
     'This is a heuristic-based analyzer, not a formal complexity prover',
     'Cannot analyze code inside external/unknown functions',
-    'Does not account for dynamic data structures (e.g., hash tables, trees) inside loops',
     'Recursion analysis is limited to basic patterns',
   ];
 
   return {
-    version: '1.1.0',
+    version: '1.2.0',
     timeComplexity,
     timeConfidence,
     spaceComplexity,

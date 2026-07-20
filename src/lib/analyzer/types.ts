@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from './language';
+
 export type ComplexityClass =
   | 'O(1)'
   | 'O(log n)'
@@ -9,7 +11,24 @@ export type ComplexityClass =
   | 'O(2ⁿ)'
   | 'indeterminate';
 
-export type LoopType = 'for' | 'while' | 'do-while';
+export type LoopType =
+  | 'for'
+  | 'while'
+  | 'do-while'
+  | 'for-of'
+  | 'for-in'
+  | 'range-for' // C++ range-based for
+  | 'enhanced-for' // Java enhanced for
+  | 'implicit-method'; // array methods like forEach, map, etc.
+
+export interface StdlibCallInfo {
+  name: string;
+  complexity: ComplexityClass;
+  startIndex: number;
+  endIndex: number;
+  startLine: number;
+  endLine: number;
+}
 
 export interface LoopInfo {
   type: LoopType;
@@ -22,6 +41,8 @@ export interface LoopInfo {
   nestingDepth: number;
   hasEarlyBreak: boolean;
   hasUnknownFunctionCalls: string[]; // names of functions called inside loop
+  hasHashContainerAccess: boolean;
+  hasSortCall: boolean;
 }
 
 export interface RecursionInfo {
@@ -41,6 +62,8 @@ export interface PatternInfo {
   logStepDetails?: { variable: string; operator: string; line: number }[];
   hasDivideAndConquer: boolean;
   hasTailRecursion: boolean;
+  hasImplicitLoops: boolean;
+  hasSortCalls: boolean;
 }
 
 export interface SpaceComplexityEstimate {
@@ -53,7 +76,7 @@ export interface ReasoningStep {
   title: string;
   rule: string;
   evidence: {
-    type: 'code' | 'loop' | 'recursion' | 'pattern';
+    type: 'code' | 'loop' | 'recursion' | 'pattern' | 'stdlib-call';
     snippet: string;
     startLine?: number;
     endLine?: number;
@@ -70,6 +93,8 @@ export interface WhatWouldChange {
 
 export interface AnalysisResult {
   version: string;
+  detectedLanguage: SupportedLanguage;
+  isPartialAnalysis: boolean;
   timeComplexity: ComplexityClass;
   timeConfidence: number; // 0-100
   spaceComplexity: SpaceComplexityEstimate;
@@ -81,4 +106,5 @@ export interface AnalysisResult {
   whatWouldChange: WhatWouldChange[];
   knownLimitations: string[];
   error?: string;
+  stdlibCalls: StdlibCallInfo[];
 }

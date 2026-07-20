@@ -1,16 +1,32 @@
-import { LoopInfo, LoopType } from './types';
+import type { LoopInfo, LoopType, SupportedLanguage } from './types';
+import type { LanguageConfig } from './language';
 import { findMatchingBrace, getLineNumber, getCodeSnippet } from './tokenizer';
+import { LANGUAGE_CONFIGS } from './language';
 
-export function detectLoops(source: string): LoopInfo[] {
+export function detectLoops(
+  source: string,
+  implicitLoops: Array<{
+    type: LoopType;
+    startIndex: number;
+    endIndex: number;
+    startLine: number;
+    endLine: number;
+    headerText: string;
+    bodyText: string;
+    methodName?: string;
+  }> = [],
+  language: SupportedLanguage
+): LoopInfo[] {
+  const config = LANGUAGE_CONFIGS[language];
   const loops: LoopInfo[] = [];
   const len = source.length;
   const seenStartIndices = new Set<number>();
 
-  // Step 1: Find all loop candidates (for/while/do)
+  // Step 1: Find all explicit loop candidates (for/while/do)
   for (let i = 0; i < len; i++) {
     // Check for "for ("
     if (i + 4 < len && source.slice(i, i + 4) === 'for ' && source[i + 4] === '(') {
-      const loop = extractLoop(source, i, 'for');
+      const loop = extractLoop(source, i, 'for', language, config);
       if (loop && !seenStartIndices.has(loop.startIndex)) {
         loops.push(loop);
         seenStartIndices.add(loop.startIndex);
@@ -20,7 +36,7 @@ export function detectLoops(source: string): LoopInfo[] {
 
     // Check for "while ("
     if (i + 6 < len && source.slice(i, i + 6) === 'while ' && source[i + 6] === '(') {
-      const loop = extractLoop(source, i, 'while');
+      const loop = extractLoop(source, i, 'while', language, config);
       if (loop && !seenStartIndices.has(loop.startIndex)) {
         loops.push(loop);
         seenStartIndices.add(loop.startIndex);
@@ -30,7 +46,7 @@ export function detectLoops(source: string): LoopInfo[] {
 
     // Check for "do " (do-while)
     if (i + 3 < len && source.slice(i, i + 3) === 'do ') {
-      const loop = extractDoWhileLoop(source, i);
+      const loop = extractDoWhileLoop(source, i, config);
       if (loop && !seenStartIndices.has(loop.startIndex)) {
         loops.push(loop);
         seenStartIndices.add(loop.startIndex);
@@ -39,7 +55,23 @@ export function detectLoops(source: string): LoopInfo[] {
     }
   }
 
-  // Step 2: Compute nesting depth for each loop
+  // Step 2: Add implicit loops (from array methods like forEach, map, etc.)
+  for (const implicitLoop of implicitLoops) {
+    if (!seenStartIndices.has(implicitLoop.startIndex)) {
+      const loop: LoopInfo = {
+        ...implicitLoop,
+        nestingDepth: 0,
+        hasEarlyBreak: false,
+        hasUnknownFunctionCalls: [],
+        hasHashContainerAccess: checkForHashContainerAccess(implicitLoop.bodyText, config),
+        hasSortCall: checkForSortCall(implicitLoop.bodyText, config),
+      };
+      loops.push(loop);
+      seenStartIndices.add(implicitLoop.startIndex);
+    }
+  }
+
+  // Step 3: Compute nesting depth for each loop
   for (const loop of loops) {
     let depth = 0;
     for (const other of loops) {
@@ -62,7 +94,9 @@ export function detectLoops(source: string): LoopInfo[] {
 function extractLoop(
   source: string,
   startIndex: number,
-  type: LoopType
+  baseType: LoopType,
+  language: SupportedLanguage,
+  config: LanguageConfig
 ): LoopInfo | null {
   // Step 1: Find closing ')' of the loop condition
   const openParenIndex = source.indexOf('(', startIndex);
@@ -80,6 +114,19 @@ function extractLoop(
     }
   }
   if (closeParenIndex === -1) return null;
+
+  // Determine loop type based on content inside parentheses
+  const insideParens = source.slice(openParenIndex + 1, closeParenIndex);
+  let actualType: LoopType = baseType;
+  if (insideParens.includes(' of ')) {
+    actualType = 'for-of';
+  } else if (insideParens.includes(' in ')) {
+    actualType = 'for-in';
+  } else if (insideParens.includes(':') && language === 'cpp') {
+    actualType = 'range-for';
+  } else if (insideParens.includes(':') && language === 'java') {
+    actualType = 'enhanced-for';
+  }
 
   // Step 2: Now look for '{' or ';' after closeParenIndex
   const searchStart = closeParenIndex + 1;
@@ -113,7 +160,7 @@ function extractLoop(
     .filter(name => !['if', 'for', 'while', 'switch', 'catch', 'do', 'return', 'throw', 'else', 'try', 'finally', 'new', 'typeof', 'void', 'instanceof', 'in'].includes(name));
 
   return {
-    type,
+    type: actualType,
     startIndex,
     endIndex,
     startLine: getLineNumber(source, startIndex),
@@ -123,10 +170,16 @@ function extractLoop(
     nestingDepth: 0,
     hasEarlyBreak,
     hasUnknownFunctionCalls,
+    hasHashContainerAccess: checkForHashContainerAccess(bodyText, config),
+    hasSortCall: checkForSortCall(bodyText, config),
   };
 }
 
-function extractDoWhileLoop(source: string, startIndex: number): LoopInfo | null {
+function extractDoWhileLoop(
+  source: string,
+  startIndex: number,
+  config: LanguageConfig
+): LoopInfo | null {
   let braceIndex = source.indexOf('{', startIndex);
   if (braceIndex === -1) return null;
 
@@ -162,5 +215,44 @@ function extractDoWhileLoop(source: string, startIndex: number): LoopInfo | null
     nestingDepth: 0,
     hasEarlyBreak,
     hasUnknownFunctionCalls,
+    hasHashContainerAccess: checkForHashContainerAccess(bodyText, config),
+    hasSortCall: checkForSortCall(bodyText, config),
   };
+}
+
+function checkForHashContainerAccess(bodyText: string, config: LanguageConfig): boolean {
+  for (const containerType of config.hashContainerTypes) {
+    if (containerType.includes('::')) {
+      const simpleName = containerType.split('::').pop();
+      if (simpleName && new RegExp(String.raw`\b${simpleName}\b`).test(bodyText)) {
+        return true;
+      }
+    } else if (new RegExp(String.raw`\b${containerType}\b`).test(bodyText)) {
+      return true;
+    }
+    // Check for get()/put()/[] access for hash containers
+    if (
+      /\.\s*get\s*\(/.test(bodyText) ||
+      /\.\s*put\s*\(/.test(bodyText) ||
+      /\[\s*[^\]]+\s*\]/.test(bodyText)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkForSortCall(bodyText: string, config: LanguageConfig): boolean {
+  for (const sortMethod of config.sortMethods) {
+    if (sortMethod.includes('.')) {
+      const parts = sortMethod.split('.');
+      const lastPart = parts.pop();
+      if (lastPart && new RegExp(String.raw`\b${lastPart}\s*\(`).test(bodyText)) {
+        return true;
+      }
+    } else if (new RegExp(String.raw`\b${sortMethod}\s*\(`).test(bodyText)) {
+      return true;
+    }
+  }
+  return false;
 }

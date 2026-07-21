@@ -1,30 +1,29 @@
 # Changelog
 
+## [1.4.0] - 2026-07-21
+### Phase 5: Visual Identity
+- **Created design system**:
+  - New color palette (deep violet + electric cyan accents)
+  - Comprehensive typography (Inter for UI, JetBrains Mono for code)
+  - Elevation/shadow system (subtle, medium, strong, glow)
+  - Spacing and radius scales
+  - Dark mode first, with full light mode support
+- **Built internal component library**:
+  - `Button` - 6 variants, 5 sizes, `asChild` support
+  - `Card` - with Header, Title, Description, Content, Footer
+  - `Badge` - 6 variants, 4 sizes
+  - `Skeleton` - text, circle, rectangle variants
+  - `Tabs` - with List, Trigger, Content
+  - All components accessible (focus states, keyboard nav)
+- **Added React Router DOM** for routing
+- **Created `/design-system` showcase page**
+- **Wrote `MOTION.md`** guidelines document
+- **Updated Tailwind config** with design tokens
+- **Updated global styles** with CSS custom properties
+- **Added theme persistence** to localStorage
+
 ## [1.3.0] - 2026-07-20
 ### Phase 4: Language Coverage & Edge Cases
-- **Added language-specific support**:
-  - Auto-detection for JavaScript, TypeScript, Java, C++
-  - Manual language override support
-  - Language-specific implicit loop detection
-  - Language-specific stdlib call detection
-- **Expanded loop detection**:
-  - Added support for JavaScript/TypeScript for...of, for...in loops
-  - Added support for Java enhanced for loops
-  - Added support for C++ range-based for loops
-  - Added support for implicit loops via array methods (forEach, map, filter, reduce, etc.)
-- **Added stdlib call detection**:
-  - Sort calls (detected as O(n log n))
-  - Hash container access (detected as O(1) average case)
-  - Other known complexity calls (binary search, etc.)
-- **Improved error handling**:
-  - Graceful handling of malformed/incomplete code with partial analysis mode
-  - Clear error messaging and reduced confidence for partial analysis
-- **Updated all modules** to work with new types and language config
-- **Updated test suite** with tests for new features (implicit loops, sort calls, partial analysis, etc.)
-- **Added `language.ts` and `stdlibDetector.ts`**
-
-## [1.2.0] - 2026-07-19
-### Phase 3: Trust & Transparency
 - **Redesigned `AnalysisResult` type** with:
   - `reasoningChain`: ordered list of `ReasoningStep`s (each step includes rule, evidence, weight, and confidence change)
   - `timeConfidence` as 0-100 score (instead of high/medium/low)

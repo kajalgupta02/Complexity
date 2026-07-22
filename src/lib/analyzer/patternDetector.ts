@@ -7,14 +7,13 @@ export function detectPatterns(
   let hasLogarithmicStep = false;
   const logStepDetails: { variable: string; operator: string; line: number }[] = [];
   let hasDivideAndConquer = false;
-  let hasTailRecursion = false;
+  const hasTailRecursion = false;
 
   // 1. Check for logarithmic steps in loops
   const logStepRegex = /\b([A-Za-z_$][\w$]*)\s*(\*=|\/=|>>=|<<=)\s*2\b/g;
   for (const loop of loops) {
     const loopBody = source.slice(loop.startIndex, loop.endIndex + 1);
-    let match;
-    while ((match = logStepRegex.exec(loopBody)) !== null) {
+    while (logStepRegex.exec(loopBody) !== null) {
       hasLogarithmicStep = true;
     }
   }

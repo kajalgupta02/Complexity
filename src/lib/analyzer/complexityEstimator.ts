@@ -8,7 +8,6 @@ import type {
   ReasoningStep,
   WhatWouldChange,
   StdlibCallInfo,
-  SupportedLanguage,
 } from './types';
 import { getCodeSnippet } from './tokenizer';
 
@@ -17,8 +16,7 @@ export function estimateComplexity(
   loops: LoopInfo[],
   recursion: RecursionInfo,
   patterns: PatternInfo,
-  stdlibCalls: StdlibCallInfo[],
-  language: SupportedLanguage
+  stdlibCalls: StdlibCallInfo[]
 ): Omit<AnalysisResult, 'error' | 'loops' | 'recursion' | 'patterns' | 'stdlibCalls' | 'detectedLanguage' | 'isPartialAnalysis'> {
   const reasoningChain: ReasoningStep[] = [];
   const detectedPatterns: string[] = [];

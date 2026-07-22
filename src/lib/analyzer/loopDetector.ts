@@ -1,6 +1,6 @@
 import type { LoopInfo, LoopType, SupportedLanguage } from './types';
 import type { LanguageConfig } from './language';
-import { findMatchingBrace, getLineNumber, getCodeSnippet } from './tokenizer';
+import { findMatchingBrace, getLineNumber } from './tokenizer';
 import { LANGUAGE_CONFIGS } from './language';
 
 export function detectLoops(
@@ -17,7 +17,7 @@ export function detectLoops(
   }> = [],
   language: SupportedLanguage
 ): LoopInfo[] {
-  const config = LANGUAGE_CONFIGS[language];
+  const config = LANGUAGE_CONFIGS[language as keyof typeof LANGUAGE_CONFIGS];
   const loops: LoopInfo[] = [];
   const len = source.length;
   const seenStartIndices = new Set<number>();
@@ -130,8 +130,8 @@ function extractLoop(
 
   // Step 2: Now look for '{' or ';' after closeParenIndex
   const searchStart = closeParenIndex + 1;
-  let braceIndex = source.indexOf('{', searchStart);
-  let semiIndex = source.indexOf(';', searchStart);
+  const braceIndex = source.indexOf('{', searchStart);
+  const semiIndex = source.indexOf(';', searchStart);
   let endIndex = -1;
   let headerText = '';
   let bodyText = '';
@@ -180,7 +180,7 @@ function extractDoWhileLoop(
   startIndex: number,
   config: LanguageConfig
 ): LoopInfo | null {
-  let braceIndex = source.indexOf('{', startIndex);
+  const braceIndex = source.indexOf('{', startIndex);
   if (braceIndex === -1) return null;
 
   const closeBrace = findMatchingBrace(source, braceIndex);

@@ -1,4 +1,4 @@
-import type { AnalysisResult, SupportedLanguage } from './types';
+import type { AnalysisResult, SupportedLanguage, PatternInfo } from './types';
 import { stripCommentsAndStrings } from './tokenizer';
 import { detectLoops } from './loopDetector';
 import { detectRecursion } from './recursionDetector';
@@ -55,7 +55,7 @@ export function analyzeCode(
     }
 
     // Preprocess source to strip comments/strings/regex
-    const cleanedSource = stripCommentsAndStrings(source);
+    stripCommentsAndStrings(source);
 
     // Detect stdlib calls and implicit loops
     const { stdlibCalls, implicitLoops } = detectStdlibCallsAndImplicitLoops(source, detectedLanguage);
@@ -66,7 +66,7 @@ export function analyzeCode(
     let loops: ReturnType<typeof detectLoops> = [];
     try {
       loops = detectLoops(source, implicitLoops, detectedLanguage);
-    } catch (e) {
+    } catch {
       isPartialAnalysis = true;
     }
 
@@ -78,12 +78,12 @@ export function analyzeCode(
     };
     try {
       recursion = detectRecursion(source);
-    } catch (e) {
+    } catch {
       isPartialAnalysis = true;
     }
 
     // Detect patterns
-    let patterns: ReturnType<typeof detectPatterns> = {
+    let patterns: PatternInfo = {
       hasLogarithmicStep: false,
       hasDivideAndConquer: false,
       hasTailRecursion: false,
@@ -93,7 +93,7 @@ export function analyzeCode(
     try {
       const basePatterns = detectPatterns(source, loops);
       patterns = { ...basePatterns, hasImplicitLoops, hasSortCalls };
-    } catch (e) {
+    } catch {
       isPartialAnalysis = true;
     }
 
@@ -103,8 +103,7 @@ export function analyzeCode(
       loops,
       recursion,
       patterns,
-      stdlibCalls,
-      detectedLanguage
+      stdlibCalls
     );
 
     // Build final result

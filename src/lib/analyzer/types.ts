@@ -1,4 +1,5 @@
 import type { SupportedLanguage } from './language';
+export type { SupportedLanguage } from './language';
 
 export type ComplexityClass =
   | 'O(1)'
@@ -7,7 +8,9 @@ export type ComplexityClass =
   | 'O(n)'
   | 'O(n log n)'
   | 'O(n²)'
+  | 'O(n² log n)'
   | 'O(n³)'
+  | 'O(n³ log n)'
   | 'O(2ⁿ)'
   | 'indeterminate';
 

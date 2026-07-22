@@ -106,7 +106,7 @@ export function stripCommentsAndStrings(source: string): string {
     // Regex can start after certain characters (operators, whitespace, (, [, {, ;, , =, !, <, >, +, -, *, /, %, ^, &, |, ?)
     const isRegexStart =
       i === 0 ||
-      /[\s\(\[\{\;\,\=\!\<\>\+\-\*\/\%\^\&\|\?]/.test(source[i - 1]);
+      /[\s([{;,=!<>+\-*/%^&|?]/.test(source[i - 1]);
     if (source[i] === '/' && isRegexStart) {
       result += '/ /'; // Replace with placeholder
       i++;

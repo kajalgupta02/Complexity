@@ -1,5 +1,5 @@
 import type { SupportedLanguage, LanguageConfig } from './language';
-import type { StdlibCallInfo, LoopInfo, LoopType } from './types';
+import type { StdlibCallInfo, LoopType } from './types';
 import { getLineNumber } from './tokenizer';
 import { findMatchingBrace } from './tokenizer';
 import { LANGUAGE_CONFIGS } from './language';
@@ -22,7 +22,7 @@ export function detectStdlibCallsAndImplicitLoops(
   source: string,
   language: SupportedLanguage
 ): StdlibDetectionResult {
-  const config = LANGUAGE_CONFIGS[language];
+  const config: LanguageConfig = LANGUAGE_CONFIGS[language as keyof typeof LANGUAGE_CONFIGS];
   const stdlibCalls: StdlibCallInfo[] = [];
   const implicitLoops: StdlibDetectionResult['implicitLoops'] = [];
   const seenIndices = new Set<string>();
@@ -109,7 +109,7 @@ export function detectStdlibCallsAndImplicitLoops(
         seenIndices.add(key);
         stdlibCalls.push({
           name: callName,
-          complexity: complexity as any,
+          complexity: complexity as StdlibCallInfo['complexity'],
           startIndex,
           endIndex: closeParenIndex,
           startLine: getLineNumber(source, startIndex),

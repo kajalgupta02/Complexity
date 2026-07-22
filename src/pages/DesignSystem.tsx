@@ -1,21 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
+import { Tooltip } from '@/components/ui/Tooltip'
+import { useToast } from '@/components/ui/Toast'
 
 export default function DesignSystem() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark'
+  })
+  const { addToast } = useToast()
+
+  // Sync with global theme state
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   const toggleTheme = () => {
-    if (theme === 'dark') {
-      document.documentElement.classList.remove('dark')
-      setTheme('light')
-    } else {
-      document.documentElement.classList.add('dark')
-      setTheme('dark')
-    }
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark')
   }
 
   return (
@@ -25,7 +30,7 @@ export default function DesignSystem() {
           <div>
             <h1 className="text-4xl font-bold text-text-primary dark:text-text-primary-dark mb-2">Design System</h1>
             <p className="text-text-tertiary dark:text-text-tertiary-dark">
-              Component library for Big O Analyzer
+              Component library for Big O Analyzer — Phase 5 Complete!
             </p>
           </div>
           <Button onClick={toggleTheme} variant="secondary">
@@ -39,6 +44,8 @@ export default function DesignSystem() {
             <TabsTrigger value="cards">Cards</TabsTrigger>
             <TabsTrigger value="badges">Badges</TabsTrigger>
             <TabsTrigger value="skeletons">Skeletons</TabsTrigger>
+            <TabsTrigger value="tooltips">Tooltips</TabsTrigger>
+            <TabsTrigger value="toasts">Toasts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="buttons">
@@ -163,6 +170,55 @@ export default function DesignSystem() {
                       <Skeleton variant="rectangle" className="h-32" />
                       <Skeleton variant="text" className="w-1/2" />
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tooltips">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tooltips</CardTitle>
+                <CardDescription>Tooltip components for additional information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-text-secondary dark:text-text-secondary-dark">Positions</h4>
+                  <div className="flex flex-wrap items-center justify-center gap-8 p-8">
+                    <Tooltip content="Top tooltip" position="top">
+                      <Button variant="secondary">Top</Button>
+                    </Tooltip>
+                    <Tooltip content="Bottom tooltip" position="bottom">
+                      <Button variant="secondary">Bottom</Button>
+                    </Tooltip>
+                    <Tooltip content="Left tooltip" position="left">
+                      <Button variant="secondary">Left</Button>
+                    </Tooltip>
+                    <Tooltip content="Right tooltip" position="right">
+                      <Button variant="secondary">Right</Button>
+                    </Tooltip>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="toasts">
+            <Card>
+              <CardHeader>
+                <CardTitle>Toasts</CardTitle>
+                <CardDescription>Toast notifications for user feedback</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-text-secondary dark:text-text-secondary-dark">Variants</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={() => addToast('default', 'This is a default toast message')}>Default</Button>
+                    <Button variant="success" onClick={() => addToast('success', 'Success! Operation completed')}>Success</Button>
+                    <Button variant="warning" onClick={() => addToast('warning', 'Warning! Please check your input')}>Warning</Button>
+                    <Button variant="danger" onClick={() => addToast('danger', 'Error! Something went wrong')}>Danger</Button>
+                    <Button onClick={() => addToast('info', 'Info: Here is some useful information')}>Info</Button>
                   </div>
                 </div>
               </CardContent>

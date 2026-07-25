@@ -90,7 +90,7 @@ export function estimateComplexity(
         weight: 80,
         confidenceChange: -20,
       });
-    } else if (maxNestingDepth >= 2) {
+    } else if (maxNestingDepth >= 1) {
       if (patterns.hasLogarithmicStep) {
         timeComplexity = 'O(n log n)';
         timeConfidence = 75;
@@ -102,7 +102,7 @@ export function estimateComplexity(
           weight: 75,
           confidenceChange: -25,
         });
-      } else if (maxNestingDepth === 2) {
+      } else if (maxNestingDepth === 1) {
         timeComplexity = 'O(n²)';
         timeConfidence = 90;
         reasoningChain.push({
@@ -118,7 +118,7 @@ export function estimateComplexity(
           weight: 90,
           confidenceChange: -10,
         });
-      } else if (maxNestingDepth >= 3) {
+      } else if (maxNestingDepth >= 2) {
         timeComplexity = 'O(n³)';
         timeConfidence = 90;
         reasoningChain.push({

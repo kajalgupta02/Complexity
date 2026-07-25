@@ -1,4 +1,4 @@
-export type SupportedLanguage = 'javascript' | 'typescript' | 'java' | 'cpp';
+export type SupportedLanguage = 'javascript' | 'typescript' | 'java' | 'cpp' | 'python';
 
 export interface LanguageConfig {
   language: SupportedLanguage;
@@ -35,6 +35,21 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
       'Array.prototype.includes': 'O(n)',
       'Array.prototype.indexOf': 'O(n)',
       'Array.prototype.lastIndexOf': 'O(n)',
+    },
+  },
+  python: {
+    language: 'python',
+    name: 'Python',
+    fileExtensions: ['.py'],
+    implicitLoopMethods: [],
+    sortMethods: ['.sort', 'sorted'],
+    hashContainerTypes: ['dict', 'set', 'frozenset', 'defaultdict', 'OrderedDict'],
+    knownComplexityCalls: {
+      'list.index': 'O(n)',
+      'list.count': 'O(n)',
+      'bisect.bisect': 'O(log n)',
+      'bisect.bisect_left': 'O(log n)',
+      'bisect.bisect_right': 'O(log n)',
     },
   },
   java: {
@@ -78,6 +93,17 @@ export function detectLanguage(source: string): SupportedLanguage {
     /\btype\s+\w+\s*=/.test(source)
   ) {
     return 'typescript';
+  }
+  // Python-specific: def, import with "import x from y" style, indentation patterns, etc.
+  if (
+    /^\s*def\s+\w+\s*\(/m.test(source) ||
+    /\bimport\s+(?:\w+\s*,\s*)*\w+\s*(?:$|\n)/m.test(source) && !/from\s+['"]/.test(source) ||
+    /\bprint\s*\(/.test(source) ||
+    /\belif\s+/.test(source) ||
+    /\bNone\b/.test(source) ||
+    /\bTrue\b|\bFalse\b/.test(source) && !/true\b|false\b/.test(source.toLowerCase().replace(/:/g, ''))
+  ) {
+    return 'python';
   }
   // Java-specific: public class, System.out.println, etc.
   if (

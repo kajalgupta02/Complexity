@@ -7,6 +7,24 @@ import { estimateComplexity } from './complexityEstimator';
 import { detectLanguage } from './language';
 import { detectStdlibCallsAndImplicitLoops } from './stdlibDetector';
 
+function hasStructuralIssues(source: string): boolean {
+  let braces = 0;
+  let parens = 0;
+  let brackets = 0;
+
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (c === '{') braces++;
+    else if (c === '}') braces--;
+    else if (c === '(') parens++;
+    else if (c === ')') parens--;
+    else if (c === '[') brackets++;
+    else if (c === ']') brackets--;
+  }
+
+  return braces !== 0 || parens !== 0 || brackets !== 0;
+}
+
 /**
  * Main analysis engine entrypoint
  * @param source Source code to analyze (supports C/Java/JS-style syntax)
@@ -55,17 +73,24 @@ export function analyzeCode(
     }
 
     // Preprocess source to strip comments/strings/regex
-    stripCommentsAndStrings(source);
+    const strippedSource = stripCommentsAndStrings(source);
 
-    // Detect stdlib calls and implicit loops
-    const { stdlibCalls, implicitLoops } = detectStdlibCallsAndImplicitLoops(source, detectedLanguage);
+    // Check for structural issues (unbalanced braces/parens = malformed code)
+    if (hasStructuralIssues(strippedSource)) {
+      isPartialAnalysis = true;
+    }
+
+    // Detect stdlib calls and implicit loops (use stripped source for pattern matching
+    // but keep original source for position-based evidence)
+    const { stdlibCalls, implicitLoops } = detectStdlibCallsAndImplicitLoops(strippedSource, detectedLanguage);
     const hasImplicitLoops = implicitLoops.length > 0;
     const hasSortCalls = stdlibCalls.some(call => call.complexity === 'O(n log n)');
 
     // Run loop detector (with language support and implicit loops)
+    // Use strippedSource to avoid detecting loops inside comments/strings
     let loops: ReturnType<typeof detectLoops> = [];
     try {
-      loops = detectLoops(source, implicitLoops, detectedLanguage);
+      loops = detectLoops(strippedSource, implicitLoops, detectedLanguage);
     } catch {
       isPartialAnalysis = true;
     }
@@ -77,7 +102,7 @@ export function analyzeCode(
       recursiveFunctions: [],
     };
     try {
-      recursion = detectRecursion(source);
+      recursion = detectRecursion(strippedSource);
     } catch {
       isPartialAnalysis = true;
     }
@@ -91,7 +116,7 @@ export function analyzeCode(
       hasSortCalls,
     };
     try {
-      const basePatterns = detectPatterns(source, loops);
+      const basePatterns = detectPatterns(strippedSource, loops);
       patterns = { ...basePatterns, hasImplicitLoops, hasSortCalls };
     } catch {
       isPartialAnalysis = true;

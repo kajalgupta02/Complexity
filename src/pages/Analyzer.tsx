@@ -1,32 +1,36 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState } from '@codemirror/state';
+import { EditorState, type Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { java } from '@codemirror/lang-java';
 import { cpp } from '@codemirror/lang-cpp';
 import { lineNumbers } from '@codemirror/view';
 import { oneDark } from '@codemirror/theme-one-dark';
+import type { ViewUpdate } from '@codemirror/view';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
-import { analyzeCode, type AnalysisResult } from '@/lib/analyzer';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { analyzeCode, type AnalysisResult, type SupportedLanguage } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
 import type { Sample } from '@/data/samples';
 import OnboardingTour from '@/components/OnboardingTour';
 import ShortcutsModal from '@/components/ShortcutsModal';
 
-const LANG_EXTENSIONS = {
+const LANG_EXTENSIONS: Record<SupportedLanguage, Extension> = {
   javascript: javascript(),
   typescript: javascript({ typescript: true }),
+  python: python(),
   java: java(),
   cpp: cpp()
 };
 
-type Language = 'javascript' | 'typescript' | 'java' | 'cpp';
+type Language = SupportedLanguage;
+
+type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'outline';
 
 const getComplexityRank = (c: string): number => {
   const order = ['O(1)', 'O(log n)', 'O(√n)', 'O(n)', 'O(n log n)', 'O(n²)', 'O(n² log n)', 'O(n³)', 'O(n³ log n)', 'O(2ⁿ)'];
@@ -59,8 +63,12 @@ interface CodeEditorProps {
   onEditorReady?: (view: EditorView) => void;
 }
 
+interface EditorDivElement extends HTMLDivElement {
+  setContent?: (text: string) => void;
+}
+
 function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps) {
-  const editorRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<EditorDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const codeRef = useRef(code);
   codeRef.current = code;
@@ -76,7 +84,7 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
           lineNumbers(),
           getCurrentTheme(),
           LANG_EXTENSIONS[langRef.current],
-          EditorView.updateListener.of((update: any) => {
+          EditorView.updateListener.of((update: ViewUpdate) => {
             if (update.docChanged) {
               setCode(update.state.doc.toString());
             }
@@ -95,7 +103,7 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, [onEditorReady, setCode]);
 
   useEffect(() => {
     if (viewRef.current) {
@@ -106,7 +114,7 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
           lineNumbers(),
           getCurrentTheme(),
           LANG_EXTENSIONS[language],
-          EditorView.updateListener.of((update: any) => {
+          EditorView.updateListener.of((update: ViewUpdate) => {
             if (update.docChanged) {
               setCode(update.state.doc.toString());
             }
@@ -119,7 +127,7 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
       });
       viewRef.current.setState(state);
     }
-  }, [language]);
+  }, [language, setCode]);
 
   const setContent = useCallback((text: string) => {
     if (viewRef.current) {
@@ -133,7 +141,12 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
     }
   }, []);
 
-  (editorRef as any).current = { ...editorRef.current, setContent } as any;
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.setContent = setContent;
+    }
+  }, [setContent]);
+
   return <div ref={editorRef} className="flex-1 overflow-hidden"></div>;
 }
 
@@ -167,8 +180,6 @@ export default function Analyzer() {
   const [rightLang, setRightLang] = useState<Language>('javascript');
   const [leftResult, setLeftResult] = useState<AnalysisResult | null>(null);
   const [rightResult, setRightResult] = useState<AnalysisResult | null>(null);
-  const [leftReady, setLeftReady] = useState(false);
-  const [rightReady, setRightReady] = useState(false);
   const [leftAnalyzing, setLeftAnalyzing] = useState(false);
   const [rightAnalyzing, setRightAnalyzing] = useState(false);
 
@@ -211,14 +222,15 @@ export default function Analyzer() {
 
   const onSelectSample = (sample: Sample) => {
     setGalleryOpen(false);
+    const lang = sample.language as Language;
     if (galleryTarget === 'left') {
-      setLeftLang(sample.language);
+      setLeftLang(lang);
       setLeftCode(sample.code);
     } else if (galleryTarget === 'right') {
-      setRightLang(sample.language);
+      setRightLang(lang);
       setRightCode(sample.code);
     } else {
-      setLanguage(sample.language);
+      setLanguage(lang);
       setCode(sample.code);
       setShowResults(false);
       setResult(null);
@@ -275,7 +287,7 @@ export default function Analyzer() {
                 {r.timeComplexity}
               </h2>
             </div>
-            <Badge size="md" variant={getComplexityColor(r.timeComplexity) as any}>
+            <Badge size="md" variant={getComplexityColor(r.timeComplexity) as BadgeVariant}>
               {Math.round(r.timeConfidence)}%
             </Badge>
           </div>
@@ -375,7 +387,7 @@ export default function Analyzer() {
         <div className="flex items-center gap-3 flex-wrap">
           <Tabs
             defaultValue={mode}
-            onValueChange={(v) => setMode(v as any)}
+            onValueChange={(v) => setMode(v as 'single' | 'compare')}
             className="flex items-center"
           >
             <TabsList>
@@ -386,11 +398,12 @@ export default function Analyzer() {
           {mode === 'single' && (
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value as any)}
+              onChange={(e) => setLanguage(e.target.value as Language)}
               className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
             >
               <option value="javascript">JavaScript</option>
               <option value="typescript">TypeScript</option>
+              <option value="python">Python</option>
               <option value="java">Java</option>
               <option value="cpp">C++</option>
             </select>
@@ -442,7 +455,7 @@ export default function Analyzer() {
                 <div className="w-3 h-3 rounded-full bg-warning-500"></div>
                 <div className="w-3 h-3 rounded-full bg-success-500"></div>
                 <span className="ml-2 text-sm text-text-muted dark:text-text-muted-dark">
-                  editor.{language === 'javascript' ? 'js' : language === 'typescript' ? 'ts' : language === 'java' ? 'java' : 'cpp'}
+                  editor.{language === 'javascript' ? 'js' : language === 'typescript' ? 'ts' : language === 'python' ? 'py' : language === 'java' ? 'java' : 'cpp'}
                 </span>
               </div>
               {galleryTarget === 'main' && (
@@ -496,11 +509,12 @@ export default function Analyzer() {
                     <Badge variant="success" size="sm">Snippet A</Badge>
                     <select
                       value={leftLang}
-                      onChange={(e) => setLeftLang(e.target.value as any)}
+                      onChange={(e) => setLeftLang(e.target.value as Language)}
                       className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-md px-2 py-1 text-xs focus:outline-none"
                     >
                       <option value="javascript">JS</option>
                       <option value="typescript">TS</option>
+                      <option value="python">PY</option>
                       <option value="java">Java</option>
                       <option value="cpp">C++</option>
                     </select>
@@ -534,11 +548,12 @@ export default function Analyzer() {
                     <Badge variant="primary" size="sm">Snippet B</Badge>
                     <select
                       value={rightLang}
-                      onChange={(e) => setRightLang(e.target.value as any)}
+                      onChange={(e) => setRightLang(e.target.value as Language)}
                       className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-md px-2 py-1 text-xs focus:outline-none"
                     >
                       <option value="javascript">JS</option>
                       <option value="typescript">TS</option>
+                      <option value="python">PY</option>
                       <option value="java">Java</option>
                       <option value="cpp">C++</option>
                     </select>

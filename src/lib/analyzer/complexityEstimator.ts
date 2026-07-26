@@ -17,7 +17,7 @@ export function estimateComplexity(
   recursion: RecursionInfo,
   patterns: PatternInfo,
   stdlibCalls: StdlibCallInfo[]
-): Omit<AnalysisResult, 'error' | 'loops' | 'recursion' | 'patterns' | 'stdlibCalls' | 'detectedLanguage' | 'isPartialAnalysis'> {
+): Omit<AnalysisResult, 'error' | 'loops' | 'recursion' | 'patterns' | 'stdlibCalls' | 'detectedLanguage' | 'isPartialAnalysis' | 'detailed'> {
   const reasoningChain: ReasoningStep[] = [];
   const detectedPatterns: string[] = [];
   let timeComplexity: ComplexityClass = 'O(1)';

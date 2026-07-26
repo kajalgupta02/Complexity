@@ -6,6 +6,33 @@ import { detectPatterns } from './patternDetector';
 import { estimateComplexity } from './complexityEstimator';
 import { detectLanguage } from './language';
 import { detectStdlibCallsAndImplicitLoops } from './stdlibDetector';
+import { buildDetailedAnalysis } from './detailedAnalyzer';
+
+function buildEmptyDetailed(language: SupportedLanguage): ReturnType<typeof buildDetailedAnalysis> {
+  return {
+    programmingLanguage: language,
+    highLevelSummary: 'No code has been provided yet. Paste or type some code to begin the analysis.',
+    algorithmUsed: ['None'],
+    stepByStepExecution: [],
+    timeComplexity: { worst: 'indeterminate', average: 'indeterminate', best: 'indeterminate' },
+    spaceComplexity: { auxiliary: 'indeterminate' },
+    complexityDerivation: [],
+    loopAnalysis: [],
+    recursiveAnalysis: { hasRecursion: false },
+    memoryUsage: [],
+    performanceNotes: [],
+    possibleOptimizations: [],
+    finalResult: {
+      programmingLanguage: language,
+      algorithm: 'None',
+      worstTime: 'indeterminate',
+      averageTime: 'indeterminate',
+      bestTime: 'indeterminate',
+      space: 'indeterminate',
+      difficulty: 'Easy',
+    },
+  };
+}
 
 function hasStructuralIssues(source: string): boolean {
   let braces = 0;
@@ -69,6 +96,7 @@ export function analyzeCode(
         knownLimitations: [],
         error: 'Please paste some code to analyze',
         stdlibCalls: [],
+        detailed: buildEmptyDetailed(detectedLanguage),
       };
     }
 
@@ -140,6 +168,16 @@ export function analyzeCode(
       recursion,
       patterns,
       stdlibCalls,
+      detailed: buildDetailedAnalysis(source, {
+        timeComplexity: estimates.timeComplexity,
+        timeConfidence: estimates.timeConfidence,
+        spaceComplexity: estimates.spaceComplexity,
+        loops,
+        recursion,
+        patterns,
+        stdlibCalls,
+        detectedLanguage,
+      }),
     };
 
     // If partial analysis, add warning
@@ -179,6 +217,7 @@ export function analyzeCode(
       knownLimitations: [],
       error: e instanceof Error ? e.message : 'Unknown error',
       stdlibCalls: [],
+      detailed: buildEmptyDetailed(detectedLanguage),
     };
   }
 }

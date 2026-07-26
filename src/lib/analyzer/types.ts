@@ -94,6 +94,76 @@ export interface WhatWouldChange {
   evidence?: string;
 }
 
+// ============ NEW: Detailed Analysis Sections ============
+
+export interface LoopAnalysisEntry {
+  loopNumber: number;
+  purpose: string;
+  iterations: string;
+  contribution: string;
+  startLine: number;
+  endLine: number;
+  nestingDepth: number;
+}
+
+export interface RecursiveAnalysis {
+  hasRecursion: boolean;
+  baseCase?: string;
+  recursiveRelation?: string;
+  recursionDepth?: string;
+  recurrence?: string;
+  contributionToComplexity?: string;
+}
+
+export interface MemoryUsageEntry {
+  name: string;
+  type: 'Array' | 'HashMap' | 'HashSet' | 'Stack' | 'Queue' | 'RecursionStack' | 'Dynamic' | 'Other';
+  affectsComplexity: boolean;
+  note: string;
+}
+
+export interface StepByStepEntry {
+  step: number;
+  description: string;
+}
+
+export interface ComplexityDerivationStep {
+  step: number;
+  description: string;
+  math?: string;
+}
+
+export interface DetailedAnalysis {
+  programmingLanguage: string;
+  highLevelSummary: string;
+  algorithmUsed: string[];
+  stepByStepExecution: StepByStepEntry[];
+  timeComplexity: {
+    worst: ComplexityClass;
+    average: ComplexityClass;
+    best: ComplexityClass;
+  };
+  spaceComplexity: {
+    auxiliary: ComplexityClass;
+    total?: ComplexityClass;
+  };
+  complexityDerivation: ComplexityDerivationStep[];
+  loopAnalysis: LoopAnalysisEntry[];
+  recursiveAnalysis: RecursiveAnalysis;
+  memoryUsage: MemoryUsageEntry[];
+  performanceNotes: string[];
+  possibleOptimizations: string[];
+  finalResult: {
+    programmingLanguage: string;
+    algorithm: string;
+    worstTime: ComplexityClass;
+    averageTime: ComplexityClass;
+    bestTime: ComplexityClass;
+    space: ComplexityClass;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+  };
+}
+
 export interface AnalysisResult {
   version: string;
   detectedLanguage: SupportedLanguage;
@@ -110,4 +180,5 @@ export interface AnalysisResult {
   knownLimitations: string[];
   error?: string;
   stdlibCalls: StdlibCallInfo[];
+  detailed: DetailedAnalysis;
 }

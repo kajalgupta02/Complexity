@@ -837,11 +837,17 @@ export default function Analyzer() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [loadingCompare, setLoadingCompare] = useState(false);
   const [galleryTarget, setGalleryTarget] = useState<'main' | 'left' | 'right'>('main');
+  const [showCompareHint, setShowCompareHint] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const analyzeBtnRef = useRef<HTMLDivElement | null>(null);
 
   const { addToast } = useToast();
+
+  const dismissCompareHint = () => {
+    try { localStorage.setItem('compare-hint-seen-v1', 'true'); } catch { /* ignore */ }
+    setShowCompareHint(false);
+  };
 
   const analyzeSingle = useCallback(() => {
     if (!code.trim()) return;
@@ -868,6 +874,20 @@ export default function Analyzer() {
       setLoadingCompare(false);
     }, 400);
   }, [leftCode, leftLang, rightCode, rightLang]);
+
+  useEffect(() => {
+    // First-visit compare mode hint + auto-run verdict (never shown again after dismissal)
+    try {
+      const compareSeen = localStorage.getItem('compare-hint-seen-v1');
+      if (!compareSeen && mode === 'compare') {
+        setShowCompareHint(true);
+        // Auto-run once so users immediately see the 🏆 verdict
+        if (!leftResult && !rightResult) {
+          setTimeout(() => analyzeCompare(), 350);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [mode, analyzeCompare, leftResult, rightResult]);
 
   const onSelectSample = (sample: Sample) => {
     setGalleryOpen(false);
@@ -896,18 +916,28 @@ export default function Analyzer() {
         else analyzeCompare();
       } else if (meta && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        setGalleryTarget(mode === 'single' ? 'main' : 'left');
         setGalleryOpen(true);
+      } else if (meta && e.key === '1') {
+        e.preventDefault();
+        setMode('single');
+        addToast('info', 'Switched to Analyze mode');
+      } else if (meta && e.key === '2') {
+        e.preventDefault();
+        setMode('compare');
+        addToast('info', 'Switched to Compare mode');
       } else if (e.key === '?') {
         e.preventDefault();
         setShortcutsOpen(true);
       } else if (e.key === 'Escape') {
         setGalleryOpen(false);
         setShortcutsOpen(false);
+        setShowCompareHint(false);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [mode, analyzeSingle, analyzeCompare]);
+  }, [mode, analyzeSingle, analyzeCompare, addToast]);
 
   const renderVerdict = useMemo(() => {
     if (!leftResult || !rightResult) return null;
@@ -1001,6 +1031,44 @@ export default function Analyzer() {
           </Button>
         </div>
       </div>
+
+      {/* Compare mode first-visit teaser banner */}
+      {showCompareHint && mode === 'compare' && (
+        <div className="relative animate-bounce-in">
+          <div className="p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(102,56,255,0.12), rgba(0,228,255,0.08))',
+              borderColor: 'rgba(102,56,255,0.3)',
+            }}
+          >
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-highlight-400 flex items-center justify-center text-xl flex-shrink-0 shadow-glow animate-float">
+                ⚔️
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
+                  Welcome to Compare mode!
+                </p>
+                <p className="text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                  Two pre-loaded Fibonacci examples are being analyzed side-by-side. The iterative version <span className="font-semibold text-success-500">O(n)</span> crushes the naive recursion <span className="font-semibold text-danger-500">O(2ⁿ)</span> — watch for the winner card below.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tooltip content="Press ⌘/Ctrl+K to swap with library samples">
+                <Badge size="sm" variant="primary">Tip: load your own snippets →</Badge>
+              </Tooltip>
+              <button
+                onClick={dismissCompareHint}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted dark:text-text-muted-dark hover:text-text-primary dark:hover:text-text-primary-dark hover:bg-bg-secondary/70 dark:hover:bg-bg-secondary-dark/70 transition-colors"
+                aria-label="Dismiss compare hint"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Panes */}
       {mode === 'single' ? (

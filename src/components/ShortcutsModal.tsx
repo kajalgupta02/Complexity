@@ -9,19 +9,27 @@ interface ShortcutsModalProps {
 const SHORTCUTS = [
   {
     keys: ['Cmd/Ctrl', 'Enter'],
-    description: 'Analyze the current code',
+    description: 'Analyze the current code (or compare both)',
   },
   {
     keys: ['Cmd/Ctrl', 'K'],
     description: 'Open the sample library',
   },
   {
+    keys: ['Cmd/Ctrl', '1'],
+    description: 'Switch to Analyze (single snippet) mode',
+  },
+  {
+    keys: ['Cmd/Ctrl', '2'],
+    description: 'Switch to Compare (two snippets) mode',
+  },
+  {
     keys: ['?'],
-    description: 'Open the shortcuts cheat sheet',
+    description: 'Open this shortcuts cheat sheet',
   },
   {
     keys: ['Esc'],
-    description: 'Close any modal / tour',
+    description: 'Close any modal / tour / banner',
   },
 ];
 

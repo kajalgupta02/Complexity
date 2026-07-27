@@ -345,6 +345,149 @@ void bubbleSort(std::vector<int>& arr) {
   }
 }`
   },
+  // O(√n)
+  {
+    id: 'osqrtn-js',
+    title: 'Trial Division Primality',
+    description: 'Divisors come in pairs up to √n, so we only need sqrt(n) checks',
+    complexity: 'O(√n)',
+    language: 'javascript',
+    code: `function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}`
+  },
+  {
+    id: 'osqrtn-py',
+    title: 'Trial Division Primality',
+    description: 'Checks divisors only up to sqrt(n) → sublinear',
+    complexity: 'O(√n)',
+    language: 'python',
+    code: `import math
+
+def is_prime(n):
+    if n < 2:
+        return False
+    for i in range(2, int(math.isqrt(n)) + 1):
+        if n % i == 0:
+            return False
+    return True`
+  },
+  {
+    id: 'osqrtn-java',
+    title: 'Trial Division Primality',
+    description: 'Loop condition i*i <= n gives sqrt(n) iterations',
+    complexity: 'O(√n)',
+    language: 'java',
+    code: `public class Primality {
+    public static boolean isPrime(int n) {
+        if (n < 2) return false;
+        for (long i = 2; i * i <= n; i++) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+}`
+  },
+  {
+    id: 'osqrtn-cpp',
+    title: 'Trial Division Primality',
+    description: 'Classic sqrt bound for prime testing',
+    complexity: 'O(√n)',
+    language: 'cpp',
+    code: `#include <cmath>
+
+bool isPrime(int n) {
+  if (n < 2) return false;
+  for (int i = 2; (long long)i * i <= n; i++) {
+    if (n % i == 0) return false;
+  }
+  return true;
+}`
+  },
+  // O(n³)
+  {
+    id: 'on3-js',
+    title: 'Matrix Multiplication (Naive)',
+    description: 'Triple nested loops: row × column × inner dot product',
+    complexity: 'O(n³)',
+    language: 'javascript',
+    code: `function multiply(A, B) {
+  const n = A.length;
+  const C = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      for (let k = 0; k < n; k++) {
+        C[i][j] += A[i][k] * B[k][j];
+      }
+    }
+  }
+  return C;
+}`
+  },
+  {
+    id: 'on3-py',
+    title: 'Matrix Multiplication (Naive)',
+    description: 'Three nested loops over n → cubic growth',
+    complexity: 'O(n³)',
+    language: 'python',
+    code: `def multiply(A, B):
+    n = len(A)
+    C = [[0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                C[i][j] += A[i][k] * B[k][j]
+    return C`
+  },
+  {
+    id: 'on3-java',
+    title: '3-Sum Brute Force',
+    description: 'Enumerates all i<j<k triples → O(n³)',
+    complexity: 'O(n³)',
+    language: 'java',
+    code: `import java.util.ArrayList;
+import java.util.List;
+
+public class ThreeSum {
+    public static List<List<Integer>> threeSum(int[] nums) {
+        List<List<Integer>> res = new ArrayList<>();
+        int n = nums.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                for (int k = j + 1; k < n; k++) {
+                    if (nums[i] + nums[j] + nums[k] == 0) {
+                        res.add(List.of(nums[i], nums[j], nums[k]));
+                    }
+                }
+            }
+        }
+        return res;
+    }
+}`
+  },
+  {
+    id: 'on3-cpp',
+    title: 'All-Pairs Shortest Paths (Floyd)',
+    description: 'Triple nested relax: for each k, i, j → O(n³)',
+    complexity: 'O(n³)',
+    language: 'cpp',
+    code: `#include <vector>
+#include <climits>
+using namespace std;
+
+void floydWarshall(vector<vector<int>>& dist) {
+  int n = dist.size();
+  for (int k = 0; k < n; k++)
+    for (int i = 0; i < n; i++)
+      for (int j = 0; j < n; j++)
+        if (dist[i][k] != INT_MAX && dist[k][j] != INT_MAX)
+          dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+}`
+  },
   // O(2ⁿ)
   {
     id: 'o2n-js',
@@ -398,9 +541,11 @@ export const COMPLEXITIES = [
   'All',
   'O(1)',
   'O(log n)',
+  'O(√n)',
   'O(n)',
   'O(n log n)',
   'O(n²)',
+  'O(n³)',
   'O(2ⁿ)',
 ];
 

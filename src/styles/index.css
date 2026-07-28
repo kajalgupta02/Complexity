@@ -461,3 +461,74 @@ kbd {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ============================================
+   Styled <select> dropdown — native OS options
+   with custom chevron + polished states
+   ============================================ */
+.select-native {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  width: auto;
+  max-width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+}
+
+.select-native:hover:not(:disabled) {
+  border-color: rgba(102, 56, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 56, 255, 0.12);
+}
+
+.select-native:focus {
+  outline: none;
+  border-color: #6638ff;
+  box-shadow: 0 0 0 3px rgba(102, 56, 255, 0.25);
+}
+
+.select-native:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-native option {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+html.dark .select-native {
+  background-color: var(--color-bg-secondary-dark);
+  color: var(--color-text-primary-dark);
+  border-color: rgba(107, 114, 128, 0.3);
+}
+
+html.dark .select-native option {
+  background-color: #111827;
+}
+
+.select-native.select-sm {
+  padding: 0.25rem 2rem 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-size: 4px 4px, 4px 4px;
+}

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { Select } from '@/components/ui/Select';
 import { analyzeCode, type AnalysisResult, type SupportedLanguage } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
@@ -103,23 +104,41 @@ interface EditorDivElement extends HTMLDivElement {
 function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps) {
   const editorRef = useRef<EditorDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const codeRef = useRef(code);
-  codeRef.current = code;
   const langRef = useRef(language);
   langRef.current = language;
+  const isSyncingRef = useRef(false);
+  const prevCodeRef = useRef(code);
+
+  // Sync external code prop changes into CodeMirror (e.g. sample loading)
+  useEffect(() => {
+    if (!viewRef.current) return;
+    if (isSyncingRef.current) return; // mid-sync from user typing
+    if (prevCodeRef.current === code) return; // no actual change
+    const current = viewRef.current.state.doc.toString();
+    if (current === code) { prevCodeRef.current = code; return; }
+    isSyncingRef.current = true;
+    viewRef.current.dispatch({
+      changes: { from: 0, to: current.length, insert: code },
+    });
+    prevCodeRef.current = code;
+    requestAnimationFrame(() => { isSyncingRef.current = false; });
+  }, [code]);
 
   useEffect(() => {
     if (editorRef.current && !viewRef.current) {
+      prevCodeRef.current = code;
       const view = new EditorView({
-        doc: codeRef.current,
+        doc: code,
         extensions: [
           basicSetup,
           lineNumbers(),
           getCurrentTheme(),
           LANG_EXTENSIONS[langRef.current],
           EditorView.updateListener.of((update: ViewUpdate) => {
-            if (update.docChanged) {
-              setCode(update.state.doc.toString());
+            if (update.docChanged && !isSyncingRef.current) {
+              const next = update.state.doc.toString();
+              prevCodeRef.current = next;
+              setCode(next);
             }
           }),
           EditorView.theme({
@@ -136,34 +155,37 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [onEditorReady, setCode]);
+  }, [onEditorReady, setCode, code]);
 
   useEffect(() => {
-    if (viewRef.current) {
-      const state = EditorState.create({
-        doc: viewRef.current.state.doc.toString(),
-        extensions: [
-          basicSetup,
-          lineNumbers(),
-          getCurrentTheme(),
-          LANG_EXTENSIONS[language],
-          EditorView.updateListener.of((update: ViewUpdate) => {
-            if (update.docChanged) {
-              setCode(update.state.doc.toString());
-            }
-          }),
-          EditorView.theme({
-            '&': { height: '100%', fontSize: '14px' },
-            '.cm-content': { fontFamily: 'JetBrains Mono, monospace' }
-          })
-        ]
-      });
-      viewRef.current.setState(state);
-    }
+    if (!viewRef.current) return;
+    const currentDoc = viewRef.current.state.doc.toString();
+    const state = EditorState.create({
+      doc: currentDoc,
+      extensions: [
+        basicSetup,
+        lineNumbers(),
+        getCurrentTheme(),
+        LANG_EXTENSIONS[language],
+        EditorView.updateListener.of((update: ViewUpdate) => {
+          if (update.docChanged && !isSyncingRef.current) {
+            const next = update.state.doc.toString();
+            prevCodeRef.current = next;
+            setCode(next);
+          }
+        }),
+        EditorView.theme({
+          '&': { height: '100%', fontSize: '14px' },
+          '.cm-content': { fontFamily: 'JetBrains Mono, monospace' }
+        })
+      ]
+    });
+    viewRef.current.setState(state);
   }, [language, setCode]);
 
   const setContent = useCallback((text: string) => {
     if (viewRef.current) {
+      isSyncingRef.current = true;
       viewRef.current.dispatch({
         changes: {
           from: 0,
@@ -171,6 +193,8 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
           insert: text
         }
       });
+      prevCodeRef.current = text;
+      requestAnimationFrame(() => { isSyncingRef.current = false; });
     }
   }, []);
 

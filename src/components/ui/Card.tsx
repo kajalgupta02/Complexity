@@ -10,9 +10,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={[
-          'bg-bg-secondary dark:bg-bg-secondary-dark',
-          'border border-text-muted/20 dark:border-text-muted-dark/20',
-          'rounded-xl shadow-subtle',
+          'modern-card',
           'transition-all duration-200',
           className
         ].join(' ')}

@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { Select } from '@/components/ui/Select';
 import { analyzeCode, type AnalysisResult, type SupportedLanguage } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
@@ -262,29 +261,54 @@ function ResultPanel({ result, analyzing, title, accent }: {
 
   if (!result || !d) {
     return (
-      <Card className="h-full flex flex-col items-center justify-center text-center animate-fade-in overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
-        <CardContent className="py-12 relative z-10">
-          <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-500 to-highlight-400 flex items-center justify-center mb-6 mx-auto animate-float shadow-glow">
-            <span className="text-5xl text-white font-bold">Ω</span>
-            <div className="absolute -inset-2 bg-gradient-to-br from-accent-500/30 to-highlight-400/30 rounded-3xl blur-xl opacity-60 -z-10 animate-pulse" />
+      <Card className="h-full flex flex-col items-center justify-center text-center animate-fade-in overflow-hidden empty-state-glow">
+        <div className="absolute inset-0 bg-grid opacity-25 pointer-events-none" />
+        <CardContent className="py-10 sm:py-12 relative z-10 w-full max-w-md mx-auto">
+          <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-500 via-accent-400 to-highlight-400 flex items-center justify-center mb-6 mx-auto animate-float shadow-glow">
+            <span className="text-5xl text-white font-black drop-shadow-sm">Ω</span>
+            <div className="absolute -inset-2 bg-gradient-to-br from-accent-500/35 to-highlight-400/30 rounded-3xl blur-xl opacity-80 -z-10 animate-pulse" />
           </div>
-          <h3 className="text-2xl font-bold text-text-primary dark:text-text-primary-dark mb-3">
+          <h3 className="text-2xl font-black text-text-primary dark:text-text-primary-dark mb-2">
             {title ?? 'Paste code or try a sample'}
           </h3>
-          <p className="text-text-tertiary dark:text-text-tertiary-dark max-w-md mb-6">
-            Drop a function in the editor and hit Analyze. We'll crack open the loops, recursion, and complexity with a full 13-section breakdown.
+          <p className="text-sm text-text-secondary dark:text-text-secondary-dark max-w-md mb-5 leading-relaxed">
+            Drop a function in the editor and hit <span className="font-semibold text-gradient-accent">Analyze This</span>. We'll crack open the loops, recursion, and complexity with a full breakdown.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <div className="grid grid-cols-3 gap-2 text-xs text-text-tertiary dark:text-text-tertiary-dark max-w-md">
-              <div className="p-2 rounded-lg bg-bg-tertiary/50 dark:bg-bg-tertiary-dark/50"><span className="block text-base mb-0.5">📊</span>13 sections</div>
-              <div className="p-2 rounded-lg bg-bg-tertiary/50 dark:bg-bg-tertiary-dark/50"><span className="block text-base mb-0.5">⚡</span>Instant</div>
-              <div className="p-2 rounded-lg bg-bg-tertiary/50 dark:bg-bg-tertiary-dark/50"><span className="block text-base mb-0.5">📚</span>Educational</div>
+
+          <div className="grid grid-cols-3 gap-2 text-xs text-text-tertiary dark:text-text-tertiary-dark mb-6">
+            <div className="p-2.5 rounded-xl bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+              <span className="block text-lg mb-0.5">📊</span>
+              <span className="font-semibold">13 sections</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+              <span className="block text-lg mb-0.5">⚡</span>
+              <span className="font-semibold">Instant</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+              <span className="block text-lg mb-0.5">📚</span>
+              <span className="font-semibold">5 langs</span>
             </div>
           </div>
-          <p className="mt-6 text-xs text-text-muted dark:text-text-muted-dark">
-            Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-bg-tertiary dark:bg-bg-tertiary-dark border border-text-muted/20 mx-1">⌘K</kbd> for the sample library
-          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-5">
+            <span className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+              Quick start
+            </span>
+            <div className="flex items-center gap-1.5 text-xs">
+              <kbd className="px-2 py-1 rounded-lg bg-bg-tertiary dark:bg-bg-tertiary-dark border border-text-muted/20 dark:border-text-muted-dark/20 font-mono font-semibold">⌘</kbd>
+              <span className="text-text-muted dark:text-text-muted-dark">+</span>
+              <kbd className="px-2 py-1 rounded-lg bg-bg-tertiary dark:bg-bg-tertiary-dark border border-text-muted/20 dark:border-text-muted-dark/20 font-mono font-semibold">K</kbd>
+              <span className="text-text-tertiary dark:text-text-tertiary-dark ml-1">Sample library</span>
+            </div>
+          </div>
+
+          <div className="relative inline-block">
+            <div className="absolute -inset-1 bg-gradient-to-r from-accent-500/40 via-highlight-400/30 to-accent-500/40 rounded-xl blur-md opacity-70 animate-pulse" />
+            <span className="relative inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-accent-500/15 via-highlight-400/10 to-accent-500/15 border border-accent-500/25 text-xs font-bold text-accent-500 dark:text-accent-300">
+              <span className="text-base">✨</span>
+              Then click <span className="underline underline-offset-2">Analyze This</span> above
+            </span>
+          </div>
         </CardContent>
       </Card>
     );
@@ -300,13 +324,13 @@ function ResultPanel({ result, analyzing, title, accent }: {
         className="relative overflow-hidden rounded-2xl p-6 border animate-bounce-in snap-result-section"
         style={{
           background: accent === 'success'
-            ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(0,228,255,0.08))'
-            : 'linear-gradient(135deg, rgba(102,56,255,0.12), rgba(0,228,255,0.08))',
-          borderColor: accent === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(102,56,255,0.3)',
+            ? 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(34,211,238,0.09))'
+            : 'linear-gradient(135deg, rgba(99,102,241,0.14), rgba(34,211,238,0.09))',
+          borderColor: accent === 'success' ? 'rgba(16,185,129,0.32)' : 'rgba(99,102,241,0.32)',
         }}
       >
-        <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full opacity-20 blur-3xl"
-          style={{ background: accent === 'success' ? '#10b981' : '#6638ff' }}
+        <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full opacity-25 blur-3xl"
+          style={{ background: accent === 'success' ? '#10b981' : '#6366f1' }}
         />
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
@@ -991,71 +1015,7 @@ export default function Analyzer() {
   }, [leftResult, rightResult]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-7xl mx-auto px-4 py-4 gap-4">
-      {/* Top Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Tabs
-            defaultValue={mode}
-            onValueChange={(v) => setMode(v as Mode)}
-            className="flex items-center"
-          >
-            <TabsList>
-              <TabsTrigger value="single">🧠 Analyze</TabsTrigger>
-              <TabsTrigger value="compare">⚔️ Compare</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          {mode === 'single' && (
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-              className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 transition-all hover:border-accent-500/50"
-            >
-              <option value="javascript">JavaScript</option>
-              <option value="typescript">TypeScript</option>
-              <option value="python">Python</option>
-              <option value="java">Java</option>
-              <option value="cpp">C++</option>
-            </select>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setGalleryTarget(mode === 'single' ? 'main' : 'left');
-              setGalleryOpen(true);
-            }}
-            id="library-step"
-          >
-            📚 Library
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShortcutsOpen(true)}
-            title="Keyboard Shortcuts"
-          >
-            ⌨️ Shortcuts
-          </Button>
-        </div>
-        <div id="analyze-button-step" ref={analyzeBtnRef}>
-          <Button
-            size="lg"
-            onClick={mode === 'single' ? analyzeSingle : analyzeCompare}
-            disabled={
-              mode === 'single'
-                ? (isAnalyzing || !code.trim())
-                : (loadingCompare || !leftCode.trim() || !rightCode.trim())
-            }
-            className="animate-glow-pulse"
-          >
-            {mode === 'single'
-              ? (isAnalyzing ? '⏳ Analyzing...' : '✨ Analyze This')
-              : (loadingCompare ? '🔍 Comparing...' : '⚡ Compare Both')}
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-[calc(100vh-68px)] max-w-7xl mx-auto px-3 sm:px-6 py-4 gap-4">
       {/* Compare mode first-visit teaser banner */}
       {showCompareHint && mode === 'compare' && (
         <div className="relative animate-bounce-in">
@@ -1094,19 +1054,119 @@ export default function Analyzer() {
         </div>
       )}
 
+      {/* ============ UNIFIED PRIMARY ACTION BAR (CONTROL STRIP) ============ */}
+      <div className="control-strip p-2 sm:p-2.5 animate-fade-in">
+        <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* LEFT GROUP: Mode + Language + Utilities */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <Tabs
+              defaultValue={mode}
+              onValueChange={(v) => setMode(v as Mode)}
+              className="flex items-center"
+            >
+              <TabsList className="!p-1">
+                <TabsTrigger value="single" className="!text-xs sm:!text-sm !px-2.5 sm:!px-3">
+                  <span className="mr-1">🧠</span>
+                  <span className="hidden xs:inline">Analyze</span>
+                </TabsTrigger>
+                <TabsTrigger value="compare" className="!text-xs sm:!text-sm !px-2.5 sm:!px-3">
+                  <span className="mr-1">⚔️</span>
+                  <span className="hidden xs:inline">Compare</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {mode === 'single' && (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-[11px] font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+                  Lang
+                </span>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="select-native select-sm !py-1.5 sm:!py-2"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="typescript">TypeScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
+              </div>
+            )}
+
+            <div className="h-6 w-px bg-text-muted/20 dark:bg-text-muted-dark/20 mx-0.5 hidden sm:block" />
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setGalleryTarget(mode === 'single' ? 'main' : 'left');
+                  setGalleryOpen(true);
+                }}
+                id="library-step"
+                className="!text-xs sm:!text-sm"
+              >
+                <span className="mr-1">📚</span>
+                <span className="hidden sm:inline">Library</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShortcutsOpen(true)}
+                title="Keyboard Shortcuts (Press ?)"
+                className="!text-xs sm:!text-sm"
+              >
+                <span className="mr-1">⌨️</span>
+                <span className="hidden sm:inline">Shortcuts</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* RIGHT GROUP: Primary CTA */}
+          <div className="flex items-center gap-2" id="analyze-button-step" ref={analyzeBtnRef}>
+            <Tooltip content={mode === 'single' ? 'Press ⌘/Ctrl + Enter' : 'Press ⌘/Ctrl + Enter'} position="left">
+              <Button
+                size="lg"
+                onClick={mode === 'single' ? analyzeSingle : analyzeCompare}
+                disabled={
+                  mode === 'single'
+                    ? (isAnalyzing || !code.trim())
+                    : (loadingCompare || !leftCode.trim() || !rightCode.trim())
+                }
+                className="btn-primary-cta !px-4 sm:!px-5 !py-2 sm:!py-2.5 !text-sm sm:!text-base !rounded-xl animate-glow-pulse"
+              >
+                {mode === 'single'
+                  ? (isAnalyzing ? (
+                      <><span className="animate-spin mr-1.5">⏳</span>Analyzing...</>)
+                    : (
+                      <><span className="mr-1">✨</span>Analyze This</>
+                    ))
+                  : (loadingCompare ? (
+                      <><span className="animate-spin mr-1.5">🔍</span>Comparing...</>)
+                    : (
+                      <><span className="mr-1">⚡</span>Compare Both</>
+                    ))}
+              </Button>
+            </Tooltip>
+          </div>
+        </div>
+      </div>
+
       {/* Main Panes */}
       {mode === 'single' ? (
         <div id="reasoning-step" className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* Editor Card */}
-          <div className="flex flex-col bg-bg-secondary dark:bg-bg-secondary-dark rounded-2xl border border-text-muted/20 dark:border-text-muted-dark/20 overflow-hidden shadow-medium hover-lift">
-            <div className="px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/5 via-transparent to-highlight-400/5">
+          {/* Editor Card — glassmorphic container with gradient border */}
+          <div className="flex flex-col overflow-hidden modern-card hover-lift">
+            <div className="relative z-10 px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-highlight-400/8">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-danger-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-warning-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-success-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></div>
+                  <div className="w-3 h-3 rounded-full bg-danger-500 shadow-[0_0_6px_rgba(239,68,68,0.55)]"></div>
+                  <div className="w-3 h-3 rounded-full bg-warning-500 shadow-[0_0_6px_rgba(245,158,11,0.55)]"></div>
+                  <div className="w-3 h-3 rounded-full bg-success-500 shadow-[0_0_6px_rgba(16,185,129,0.55)]"></div>
                 </div>
-                <span className="ml-2 text-xs font-mono text-text-muted dark:text-text-muted-dark bg-bg-tertiary/70 dark:bg-bg-tertiary-dark/70 px-2 py-0.5 rounded-md">
+                <span className="ml-2 text-xs font-mono text-text-muted dark:text-text-muted-dark bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10 px-2 py-0.5 rounded-md">
                   editor.{FILE_EXT[language]}
                 </span>
               </div>
@@ -1116,7 +1176,7 @@ export default function Analyzer() {
                 </Button>
               )}
             </div>
-            <div id="code-editor-step" className="flex flex-col flex-1 min-h-0" ref={editorRef}>
+            <div id="code-editor-step" className="flex flex-col flex-1 min-h-0 relative z-10" ref={editorRef}>
               <CodeEditor code={code} setCode={setCode} language={language} />
             </div>
           </div>

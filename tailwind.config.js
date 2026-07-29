@@ -8,6 +8,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Elevated surface levels
+        surface: {
+          base: 'var(--bg-base)',
+          DEFAULT: 'var(--bg-surface)',
+          overlay: 'var(--bg-overlay)',
+        },
+        'border-subtle': 'var(--border-subtle)',
+        'accent-primary': 'var(--accent-primary)',
+        'accent-glow': 'var(--accent-glow)',
         // Background colors
         bg: {
           primary: {
@@ -46,30 +55,30 @@ export default {
             dark: 'var(--color-text-muted-dark)',
           },
         },
-        // Accent colors
+        // Accent colors (Indigo 6366f1)
         accent: {
-          50: '#f0eeff',
-          100: '#e1deff',
-          200: '#c7c1ff',
-          300: '#a499ff',
-          400: '#7c5cff',
-          500: '#6638ff',
-          600: '#5821e7',
-          700: '#4817be',
-          800: '#3c1697',
-          900: '#341578',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
         highlight: {
-          50: '#e0fcff',
-          100: '#c0f9ff',
-          200: '#80f2ff',
-          300: '#40ebff',
-          400: '#00e4ff',
-          500: '#00cbe6',
-          600: '#00a3cc',
-          700: '#007cb3',
-          800: '#005499',
-          900: '#002d80',
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
         },
         success: {
           50: '#ecfdf5',

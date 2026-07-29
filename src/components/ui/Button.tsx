@@ -18,9 +18,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary: [
-        'bg-accent-500 text-white',
-        'hover:bg-accent-600',
-        'shadow-subtle hover:shadow-medium'
+        'bg-gradient-to-br from-accent-500 via-accent-400 to-accent-600',
+        'text-white',
+        'hover:from-accent-600 hover:via-accent-500 hover:to-accent-700',
+        'shadow-[0_0_0_1px_rgba(99,102,241,0.35),0_8px_24px_-6px_rgba(99,102,241,0.5)]',
+        'hover:shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_12px_30px_-6px_rgba(99,102,241,0.65)]'
       ].join(' '),
       secondary: [
         'bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark',

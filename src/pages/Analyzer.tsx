@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState, type Extension } from '@codemirror/state';
+import { EditorState, Compartment, StateEffect, StateField, RangeSet, RangeSetBuilder, type Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { java } from '@codemirror/lang-java';
 import { cpp } from '@codemirror/lang-cpp';
-import { lineNumbers } from '@codemirror/view';
+import { lineNumbers, GutterMarker, gutter, keymap } from '@codemirror/view';
+import { Decoration, type DecorationSet } from '@codemirror/view';
 import { oneDark } from '@codemirror/theme-one-dark';
 import type { ViewUpdate } from '@codemirror/view';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { analyzeCode, type AnalysisResult, type SupportedLanguage } from '@/lib/analyzer';
+import { analyzeCode, detectLanguage, type AnalysisResult, type SupportedLanguage, type LoopInfo } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
 import type { Sample } from '@/data/samples';
@@ -27,6 +28,14 @@ const LANG_EXTENSIONS: Record<SupportedLanguage, Extension> = {
   python: python(),
   java: java(),
   cpp: cpp()
+};
+
+const LANG_META: Record<Language, { icon: string; label: string; accent: string }> = {
+  javascript: { icon: '🟨', label: 'JavaScript', accent: 'text-yellow-600' },
+  typescript: { icon: '🔷', label: 'TypeScript', accent: 'text-blue-600' },
+  python:     { icon: '🐍', label: 'Python',     accent: 'text-emerald-600' },
+  java:       { icon: '☕', label: 'Java',       accent: 'text-orange-600' },
+  cpp:        { icon: '⚙️', label: 'C++',        accent: 'text-sky-600' },
 };
 
 type Language = SupportedLanguage;
@@ -49,13 +58,169 @@ const SECTION_TABS: { id: TabSection; label: string; icon: string; hint: string 
   { id: 'optimizations', label: 'Optimizations', icon: '🚀', hint: 'How to make it faster' },
 ];
 
-const FILE_EXT: Record<Language, string> = {
-  javascript: 'js',
-  typescript: 'ts',
-  python: 'py',
-  java: 'java',
-  cpp: 'cpp',
+const FILE_NAME: Record<Language, string> = {
+  javascript: 'Main.js',
+  typescript: 'Main.ts',
+  python: 'main.py',
+  java: 'Main.java',
+  cpp: 'main.cpp',
 };
+
+/**
+ * Heuristic brace-based code formatter (prettier-lite) — works for
+ * C-style brace languages (JS/TS/Java/C++). For Python, preserves existing
+ * leading whitespace and only trims trailing blank lines.
+ */
+function formatCode(src: string, lang: Language): string {
+  if (!src.trim()) return '';
+  if (lang === 'python') {
+    return src.replace(/\s+$/gm, '').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '') + '\n';
+  }
+  const lines = src.replace(/\r\n/g, '\n').split('\n');
+  let indent = 0;
+  const result: string[] = [];
+  const INDENT_UNIT = '  ';
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) { result.push(''); continue; }
+    const opens = (line.match(/[\{\(\[]/g) || []).length;
+    const closes = (line.match(/[\}\)\]]/g) || []).length;
+    const startsWithClose = /^[\}\)\]]/.test(line);
+    if (startsWithClose && indent > 0) indent--;
+    result.push(INDENT_UNIT.repeat(Math.max(0, indent)) + line);
+    indent += opens - closes;
+    if (startsWithClose) {
+      indent = Math.max(0, indent + 1);
+      const net = opens - closes;
+      indent = Math.max(0, indent - 1 + net);
+    }
+    indent = Math.max(0, indent);
+  }
+  return result.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '') + '\n';
+}
+
+/**
+ * Map a nesting depth to a Big-O label for display on loop gutter markers.
+ * Falls back to the loop header type for implicit-method loops.
+ */
+function loopComplexityBadge(loop: LoopInfo): string {
+  const depth = loop.nestingDepth;
+  if (loop.hasSortCall) return depth === 0 ? 'O(n log n)' : 'O(n² log n)';
+  if (depth === 0) return 'O(n)';
+  if (depth === 1) return 'O(n²)';
+  if (depth === 2) return 'O(n³)';
+  return `O(n^${depth + 1})`;
+}
+
+/** Gutter marker widget showing an O() badge on detected loop lines. */
+class LoopGutterBadge extends GutterMarker {
+  constructor(readonly label: string, readonly depth: number) { super(); }
+  eq(other: LoopGutterBadge) { return other.label === this.label; }
+  toDOM() {
+    const el = document.createElement('div');
+    const tone =
+      this.depth === 0 ? 'rgba(245,158,11,0.85)' :
+      this.depth === 1 ? 'rgba(239,68,68,0.9)' :
+      'rgba(239,68,68,0.95)';
+    const bg =
+      this.depth === 0 ? 'rgba(245,158,11,0.12)' :
+      this.depth === 1 ? 'rgba(239,68,68,0.12)' :
+      'rgba(239,68,68,0.18)';
+    el.title = `Contributes ${this.label} (nesting depth ${this.depth + 1})`;
+    el.textContent = this.label;
+    el.style.cssText = `
+      font-family: JetBrains Mono, ui-monospace, monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+      color: ${tone};
+      background: ${bg};
+      border: 1px solid ${tone.replace(/[\d.]+\)$/, '0.3)')};
+      border-radius: 6px;
+      padding: 1px 5px;
+      line-height: 1.4;
+      margin-left: -2px;
+      transform: translateX(-3px);
+      pointer-events: auto;
+      cursor: help;
+      white-space: nowrap;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+    `;
+    return el;
+  }
+}
+
+const setLoopMarkersEffect = StateEffect.define<DecorationSet>();
+
+const loopMarkersField = StateField.define<DecorationSet>({
+  create() { return Decoration.none; },
+  update(prev, tr) {
+    for (const e of tr.effects) if (e.is(setLoopMarkersEffect)) return e.value;
+    return prev.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const loopBadgeGutter = gutter({
+  class: 'cm-loopBadge-gutter',
+  markers: (view) => {
+    const decorations = view.state.field(loopMarkersField, false);
+    if (!decorations) return RangeSet.empty;
+    const builder = new RangeSetBuilder<GutterMarker>();
+    const addedLines = new Set<number>();
+    decorations.between(0, view.state.doc.length, (f: number, _t: number, d: any) => {
+      const spec = d?.spec?.loopMarkerSpec;
+      if (!spec) return;
+      try {
+        const line = view.state.doc.lineAt(f);
+        if (!addedLines.has(line.number)) {
+          addedLines.add(line.number);
+          builder.add(line.from, line.from, new LoopGutterBadge(spec.label, spec.depth));
+        }
+      } catch { /* ignore */ }
+    });
+    return builder.finish();
+  },
+});
+
+const themeLoopUnderlines = EditorView.baseTheme({
+  '.cm-loopBadge-gutter': {
+    width: 'auto',
+    padding: '0 4px 0 2px',
+    minWidth: '8px',
+  },
+  '.cm-activeLine cm-loopBadge-gutter': {
+    background: 'transparent',
+  },
+  // Soft squiggly underlines + subtle highlight bg for loops contributing to complexity
+  '.cm-loopHighlight-oN': {
+    background: 'rgba(245, 158, 11, 0.08)',
+    textDecoration: 'wavy underline rgba(245, 158, 11, 0.55)',
+    textUnderlineOffset: '3px',
+    textDecorationThickness: '1.5px',
+  },
+  '.cm-loopHighlight-oN2': {
+    background: 'rgba(239, 68, 68, 0.1)',
+    textDecoration: 'wavy underline rgba(239, 68, 68, 0.6)',
+    textUnderlineOffset: '3px',
+    textDecorationThickness: '1.5px',
+  },
+  '.cm-loopHighlight-oN3': {
+    background: 'rgba(239, 68, 68, 0.14)',
+    textDecoration: 'wavy underline rgba(239, 68, 68, 0.7)',
+    textUnderlineOffset: '3px',
+    textDecorationThickness: '1.8px',
+  },
+  '&dark .cm-loopHighlight-oN': {
+    background: 'rgba(245, 158, 11, 0.09)',
+  },
+  '&dark .cm-loopHighlight-oN2': {
+    background: 'rgba(239, 68, 68, 0.11)',
+  },
+  '&dark .cm-loopHighlight-oN3': {
+    background: 'rgba(239, 68, 68, 0.15)',
+  },
+});
 
 const getComplexityRank = (c: string): number => {
   const order = ['O(1)', 'O(log n)', 'O(√n)', 'O(n)', 'O(n log n)', 'O(n²)', 'O(n² log n)', 'O(n³)', 'O(n³ log n)', 'O(2ⁿ)'];
@@ -94,19 +259,129 @@ interface CodeEditorProps {
   setCode: (c: string) => void;
   language: Language;
   onEditorReady?: (view: EditorView) => void;
+  onUserEdited?: (code: string, kind: 'input' | 'paste' | 'cut') => void;
 }
 
 interface EditorDivElement extends HTMLDivElement {
   setContent?: (text: string) => void;
 }
 
-function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps) {
+function buildEditorExtensions(
+  language: Language,
+  setCode: (c: string) => void,
+  onUserEdited: ((c: string, k: 'input' | 'paste' | 'cut') => void) | undefined,
+  isSyncingRef: React.MutableRefObject<boolean>,
+  prevCodeRef: React.MutableRefObject<string>,
+): Extension[] {
+  const pasteHandler = keymap.of([{
+    key: 'Mod-v',
+    run: () => false, // let CodeMirror default paste run; we detect paste via DOM below
+  }]);
+  return [
+    basicSetup,
+    lineNumbers(),
+    loopBadgeGutter,
+    loopMarkersField,
+    themeLoopUnderlines,
+    getCurrentTheme(),
+    LANG_EXTENSIONS[language],
+    EditorView.domEventHandlers({
+      paste: (_e, v) => {
+        setTimeout(() => {
+          const next = v.state.doc.toString();
+          if (!isSyncingRef.current && next !== prevCodeRef.current) {
+            prevCodeRef.current = next;
+            setCode(next);
+            onUserEdited?.(next, 'paste');
+          }
+        }, 0);
+        return false;
+      },
+      cut: (_e, v) => {
+        setTimeout(() => {
+          const next = v.state.doc.toString();
+          if (!isSyncingRef.current && next !== prevCodeRef.current) {
+            prevCodeRef.current = next;
+            setCode(next);
+            onUserEdited?.(next, 'cut');
+          }
+        }, 0);
+        return false;
+      },
+    }),
+    EditorView.updateListener.of((update: ViewUpdate) => {
+      if (update.docChanged && !isSyncingRef.current) {
+        const next = update.state.doc.toString();
+        prevCodeRef.current = next;
+        setCode(next);
+        // Infer input event when user types (docChanged without paste/cut)
+        if (onUserEdited) {
+          const userOriginated = update.transactions.some(
+            (t) => t.isUserEvent('input') || t.isUserEvent('delete') || t.isUserEvent('keyboard'),
+          );
+          if (userOriginated) onUserEdited(next, 'input');
+        }
+      }
+    }),
+    EditorView.theme({
+      '&': { height: '100%', fontSize: '14px' },
+      '.cm-content': { fontFamily: 'JetBrains Mono, monospace' },
+      '.cm-gutters': {
+        borderRight: '1px solid rgba(120, 130, 160, 0.12)',
+      },
+    }),
+    pasteHandler,
+  ];
+}
+
+export function applyLoopMarkers(view: EditorView | null, loops: LoopInfo[]) {
+  if (!view) return;
+  try {
+    if (loops.length === 0) {
+      view.dispatch({ effects: setLoopMarkersEffect.of(Decoration.none) });
+      return;
+    }
+    const builder = new RangeSetBuilder<Decoration>();
+    const doc = view.state.doc;
+    for (const loop of loops) {
+      const lineNo = Math.min(Math.max(1, loop.startLine), doc.lines);
+      const line = doc.line(lineNo);
+      const label = loopComplexityBadge(loop);
+      const deco = Decoration.mark({
+        class:
+          loop.nestingDepth === 0
+            ? 'cm-loopHighlight-oN'
+            : loop.nestingDepth === 1
+            ? 'cm-loopHighlight-oN2'
+            : 'cm-loopHighlight-oN3',
+        loopMarkerSpec: { label, depth: loop.nestingDepth, type: loop.type },
+        inclusive: true,
+        inclusiveStart: true,
+        inclusiveEnd: false,
+      });
+      const endPos = Math.min(line.to + 1, doc.length);
+      builder.add(line.from, endPos, deco);
+    }
+    view.dispatch({
+      effects: setLoopMarkersEffect.of(builder.finish()),
+    });
+  } catch {
+    try {
+      view.dispatch({ effects: setLoopMarkersEffect.of(Decoration.none) });
+    } catch { /* ignore */ }
+  }
+}
+
+function CodeEditor({ code, setCode, language, onEditorReady, onUserEdited }: CodeEditorProps) {
   const editorRef = useRef<EditorDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const langRef = useRef(language);
-  langRef.current = language;
+  const langCompartment = useRef(new Compartment()).current;
   const isSyncingRef = useRef(false);
   const prevCodeRef = useRef(code);
+  const onUserEditedRef = useRef(onUserEdited);
+  onUserEditedRef.current = onUserEdited;
+  const setCodeRef = useRef(setCode);
+  setCodeRef.current = setCode;
 
   // Sync external code prop changes into CodeMirror (e.g. sample loading)
   useEffect(() => {
@@ -123,29 +398,47 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
     requestAnimationFrame(() => { isSyncingRef.current = false; });
   }, [code]);
 
+  // Reconfigure just the language extension via Compartment when `language` changes
+  useEffect(() => {
+    if (!viewRef.current) return;
+    try {
+      viewRef.current.dispatch({
+        effects: langCompartment.reconfigure(LANG_EXTENSIONS[language]),
+      });
+    } catch {
+      // Fallback: full state rebuild if reconfigure rejected
+      const currentDoc = viewRef.current.state.doc.toString();
+      const state = EditorState.create({
+        doc: currentDoc,
+        extensions: buildEditorExtensions(
+          language,
+          (c) => setCodeRef.current(c),
+          (c, k) => onUserEditedRef.current?.(c, k),
+          isSyncingRef,
+          prevCodeRef,
+        ),
+      });
+      viewRef.current.setState(state);
+    }
+  }, [language, langCompartment]);
+
   useEffect(() => {
     if (editorRef.current && !viewRef.current) {
       prevCodeRef.current = code;
+      const coreExts = buildEditorExtensions(
+        language,
+        (c) => setCodeRef.current(c),
+        (c, k) => onUserEditedRef.current?.(c, k),
+        isSyncingRef,
+        prevCodeRef,
+      );
       const view = new EditorView({
         doc: code,
         extensions: [
-          basicSetup,
-          lineNumbers(),
-          getCurrentTheme(),
-          LANG_EXTENSIONS[langRef.current],
-          EditorView.updateListener.of((update: ViewUpdate) => {
-            if (update.docChanged && !isSyncingRef.current) {
-              const next = update.state.doc.toString();
-              prevCodeRef.current = next;
-              setCode(next);
-            }
-          }),
-          EditorView.theme({
-            '&': { height: '100%', fontSize: '14px' },
-            '.cm-content': { fontFamily: 'JetBrains Mono, monospace' }
-          })
+          coreExts,
+          langCompartment.of([]), // placeholder so reconfigure always works
         ],
-        parent: editorRef.current
+        parent: editorRef.current,
       });
       viewRef.current = view;
       onEditorReady?.(view);
@@ -154,33 +447,8 @@ function CodeEditor({ code, setCode, language, onEditorReady }: CodeEditorProps)
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [onEditorReady, setCode, code]);
-
-  useEffect(() => {
-    if (!viewRef.current) return;
-    const currentDoc = viewRef.current.state.doc.toString();
-    const state = EditorState.create({
-      doc: currentDoc,
-      extensions: [
-        basicSetup,
-        lineNumbers(),
-        getCurrentTheme(),
-        LANG_EXTENSIONS[language],
-        EditorView.updateListener.of((update: ViewUpdate) => {
-          if (update.docChanged && !isSyncingRef.current) {
-            const next = update.state.doc.toString();
-            prevCodeRef.current = next;
-            setCode(next);
-          }
-        }),
-        EditorView.theme({
-          '&': { height: '100%', fontSize: '14px' },
-          '.cm-content': { fontFamily: 'JetBrains Mono, monospace' }
-        })
-      ]
-    });
-    viewRef.current.setState(state);
-  }, [language, setCode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setContent = useCallback((text: string) => {
     if (viewRef.current) {
@@ -871,6 +1139,7 @@ export default function Analyzer() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [mainAutoDetect, setMainAutoDetect] = useState<Language | null>(null);
 
   const [leftCode, setLeftCode] = useState<string>(DEFAULT_LEFT);
   const [rightCode, setRightCode] = useState<string>(DEFAULT_RIGHT);
@@ -880,6 +1149,8 @@ export default function Analyzer() {
   const [rightResult, setRightResult] = useState<AnalysisResult | null>(null);
   const [leftAnalyzing, setLeftAnalyzing] = useState(false);
   const [rightAnalyzing, setRightAnalyzing] = useState(false);
+  const [leftAutoDetect, setLeftAutoDetect] = useState<Language | null>(null);
+  const [rightAutoDetect, setRightAutoDetect] = useState<Language | null>(null);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -889,6 +1160,9 @@ export default function Analyzer() {
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const analyzeBtnRef = useRef<HTMLDivElement | null>(null);
+  const mainEditorViewRef = useRef<EditorView | null>(null);
+  const leftEditorViewRef = useRef<EditorView | null>(null);
+  const rightEditorViewRef = useRef<EditorView | null>(null);
 
   const { addToast } = useToast();
 
@@ -896,6 +1170,72 @@ export default function Analyzer() {
     try { localStorage.setItem('compare-hint-seen-v1', 'true'); } catch { /* ignore */ }
     setShowCompareHint(false);
   };
+
+  const tryAutoDetect = useCallback((
+    src: string,
+    currentLang: Language,
+    onDetect: (detected: Language) => void,
+    setBadge: (lang: Language | null) => void,
+  ) => {
+    if (!src.trim()) { setBadge(null); return; }
+    const detected = detectLanguage(src);
+    if (detected !== currentLang) {
+      setBadge(detected);
+      onDetect(detected);
+      addToast('info', `Auto-detected ${LANG_META[detected].label} — grammar switched`);
+    } else {
+      setBadge(null);
+    }
+  }, [addToast]);
+
+  const copyCode = useCallback(async (text: string, label = 'Code') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      addToast('success', `${label} copied to clipboard`);
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        addToast('success', `${label} copied to clipboard`);
+      } catch {
+        addToast('danger', 'Failed to copy');
+      }
+    }
+  }, [addToast]);
+
+  const clearCode = useCallback((
+    setter: (s: string) => void,
+    viewRef: React.MutableRefObject<EditorView | null>,
+    label = 'Editor',
+  ) => {
+    setter('');
+    if (viewRef.current) {
+      try { applyLoopMarkers(viewRef.current, []); } catch { /* ignore */ }
+    }
+    addToast('info', `${label} cleared`);
+  }, [addToast]);
+
+  const formatAndSet = useCallback((
+    src: string,
+    lang: Language,
+    setter: (s: string) => void,
+    viewRef: React.MutableRefObject<EditorView | null>,
+  ) => {
+    const formatted = formatCode(src, lang);
+    setter(formatted);
+    try {
+      if (viewRef.current) {
+        viewRef.current.dispatch({
+          changes: { from: 0, to: viewRef.current.state.doc.length, insert: formatted },
+        });
+      }
+    } catch { /* ignore */ }
+    addToast('success', 'Code formatted');
+  }, [addToast]);
 
   const analyzeSingle = useCallback(() => {
     if (!code.trim()) return;
@@ -905,6 +1245,7 @@ export default function Analyzer() {
       const analysisResult = analyzeCode(code, language);
       setResult(analysisResult);
       setIsAnalyzing(false);
+      applyLoopMarkers(mainEditorViewRef.current, analysisResult.loops ?? []);
     }, 300);
   }, [code, language]);
 
@@ -913,13 +1254,17 @@ export default function Analyzer() {
     setLeftAnalyzing(true);
     setRightAnalyzing(true);
     setTimeout(() => {
-      setLeftResult(analyzeCode(leftCode, leftLang));
+      const l = analyzeCode(leftCode, leftLang);
+      setLeftResult(l);
       setLeftAnalyzing(false);
+      applyLoopMarkers(leftEditorViewRef.current, l.loops ?? []);
     }, 200);
     setTimeout(() => {
-      setRightResult(analyzeCode(rightCode, rightLang));
+      const r = analyzeCode(rightCode, rightLang);
+      setRightResult(r);
       setRightAnalyzing(false);
       setLoadingCompare(false);
+      applyLoopMarkers(rightEditorViewRef.current, r.loops ?? []);
     }, 400);
   }, [leftCode, leftLang, rightCode, rightLang]);
 
@@ -943,14 +1288,20 @@ export default function Analyzer() {
     if (galleryTarget === 'left') {
       setLeftLang(lang);
       setLeftCode(sample.code);
+      setLeftAutoDetect(null);
+      applyLoopMarkers(leftEditorViewRef.current, []);
     } else if (galleryTarget === 'right') {
       setRightLang(lang);
       setRightCode(sample.code);
+      setRightAutoDetect(null);
+      applyLoopMarkers(rightEditorViewRef.current, []);
     } else {
       setLanguage(lang);
       setCode(sample.code);
       setShowResults(false);
       setResult(null);
+      setMainAutoDetect(null);
+      applyLoopMarkers(mainEditorViewRef.current, []);
     }
     addToast('success', `Loaded "${sample.title}" sample`);
   };
@@ -1083,7 +1434,10 @@ export default function Analyzer() {
                 </span>
                 <select
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  onChange={(e) => {
+                    setLanguage(e.target.value as Language);
+                    setMainAutoDetect(null);
+                  }}
                   className="select-native select-sm !py-1.5 sm:!py-2"
                 >
                   <option value="javascript">JavaScript</option>
@@ -1159,25 +1513,88 @@ export default function Analyzer() {
         <div id="reasoning-step" className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
           {/* Editor Card — glassmorphic container with gradient border */}
           <div className="flex flex-col overflow-hidden modern-card hover-lift">
-            <div className="relative z-10 px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-highlight-400/8">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-danger-500 shadow-[0_0_6px_rgba(239,68,68,0.55)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-warning-500 shadow-[0_0_6px_rgba(245,158,11,0.55)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-success-500 shadow-[0_0_6px_rgba(16,185,129,0.55)]"></div>
+            {/* ACTION UTILITIES BAR */}
+            <div className="relative z-10 px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-highlight-400/8">
+              {/* LEFT: Language icon + filename + Auto-Detected badge */}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-bg-tertiary/70 dark:bg-bg-tertiary-dark/70 border border-text-muted/10 dark:border-text-muted-dark/10">
+                  <span className="text-sm">{LANG_META[language].icon}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-text-secondary dark:text-text-secondary-dark font-mono hidden sm:inline">
+                    {LANG_META[language].label}
+                  </span>
                 </div>
-                <span className="ml-2 text-xs font-mono text-text-muted dark:text-text-muted-dark bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10 px-2 py-0.5 rounded-md">
-                  editor.{FILE_EXT[language]}
+                <span className="text-xs font-mono font-semibold text-text-secondary dark:text-text-secondary-dark min-w-0 truncate" title={FILE_NAME[language]}>
+                  {FILE_NAME[language]}
                 </span>
+                {mainAutoDetect && (
+                  <Tooltip content={`Switched grammar to ${LANG_META[mainAutoDetect].label} automatically`} position="bottom">
+                    <Badge variant="primary" size="xs" className="animate-bounce-in !text-[10px] !px-2 !py-0.5 tracking-wide uppercase shadow-glow-primary">
+                      <span className="mr-1">✨</span>Auto-Detected: {LANG_META[mainAutoDetect].label}
+                    </Badge>
+                  </Tooltip>
+                )}
               </div>
-              {galleryTarget === 'main' && (
-                <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('main'); setGalleryOpen(true); }}>
-                  Load Sample
-                </Button>
-              )}
+              {/* RIGHT: Load Sample + Copy Clear Format */}
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                <Tooltip content="Open sample library (⌘K)" position="bottom">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => { setGalleryTarget('main'); setGalleryOpen(true); }}
+                    className="!px-2"
+                  >
+                    <span className="sm:hidden">📚</span>
+                    <span className="hidden sm:inline">📚 Sample</span>
+                  </Button>
+                </Tooltip>
+                <div className="h-5 w-px bg-text-muted/20 dark:bg-text-muted-dark/20 mx-0.5 hidden sm:block" />
+                <Tooltip content="Copy code (⌘C)">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => copyCode(code, LANG_META[language].label + ' code')}
+                    disabled={!code.trim()}
+                    className="!px-2"
+                  >
+                    📋<span className="hidden sm:inline ml-1">Copy</span>
+                  </Button>
+                </Tooltip>
+                <Tooltip content="Auto-indent / Format code">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => formatAndSet(code, language, setCode, mainEditorViewRef)}
+                    disabled={!code.trim()}
+                    className="!px-2"
+                  >
+                    ✨<span className="hidden sm:inline ml-1">Format</span>
+                  </Button>
+                </Tooltip>
+                <Tooltip content="Clear editor">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => clearCode(setCode, mainEditorViewRef, LANG_META[language].label + ' editor')}
+                    disabled={!code.trim()}
+                    className="!px-2"
+                  >
+                    🗑️<span className="hidden sm:inline ml-1">Clear</span>
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
             <div id="code-editor-step" className="flex flex-col flex-1 min-h-0 relative z-10" ref={editorRef}>
-              <CodeEditor code={code} setCode={setCode} language={language} />
+              <CodeEditor
+                code={code}
+                setCode={setCode}
+                language={language}
+                onEditorReady={(view) => { mainEditorViewRef.current = view; }}
+                onUserEdited={(next, kind) => {
+                  if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
+                    tryAutoDetect(next, language, setLanguage, setMainAutoDetect);
+                  }
+                }}
+              />
             </div>
           </div>
           {/* Results Card */}
@@ -1191,17 +1608,21 @@ export default function Analyzer() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* LEFT */}
+          {/* LEFT — SNIPPET A */}
           <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-success-500/30 overflow-hidden hover-lift glow-border">
               <CardContent className="p-0">
-                <div className="px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-success-500/8 via-transparent to-transparent">
-                  <div className="flex items-center gap-2">
+                {/* ACTION UTILITIES BAR: SNIPPET A */}
+                <div className="px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-success-500/8 via-transparent to-transparent">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="success" size="sm">Snippet A</Badge>
+                    <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+                      <span className="text-xs">{LANG_META[leftLang].icon}</span>
+                    </div>
                     <select
                       value={leftLang}
-                      onChange={(e) => setLeftLang(e.target.value as Language)}
-                      className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-md px-2 py-1 text-xs focus:outline-none hover:border-accent-500/40 transition-all"
+                      onChange={(e) => { setLeftLang(e.target.value as Language); setLeftAutoDetect(null); }}
+                      className="select-native select-sm !py-1 !text-xs"
                     >
                       <option value="javascript">JS</option>
                       <option value="typescript">TS</option>
@@ -1209,13 +1630,36 @@ export default function Analyzer() {
                       <option value="java">Java</option>
                       <option value="cpp">C++</option>
                     </select>
+                    <span className="hidden md:inline text-[11px] font-mono text-text-muted dark:text-text-muted-dark truncate">· {FILE_NAME[leftLang]}</span>
+                    {leftAutoDetect && (
+                      <Tooltip content={`Auto-detected ${LANG_META[leftAutoDetect].label} — grammar updated`} position="bottom">
+                        <Badge variant="success" size="xs" className="animate-bounce-in !text-[9px] !px-1.5 !py-0.5 uppercase">
+                          ✨ {LANG_META[leftAutoDetect].label}
+                        </Badge>
+                      </Tooltip>
+                    )}
                   </div>
-                  <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('left'); setGalleryOpen(true); }}>
-                    Load Sample
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Tooltip content="Sample library (⌘K)" position="bottom">
+                      <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('left'); setGalleryOpen(true); }} className="!px-2">📚</Button>
+                    </Tooltip>
+                    <Tooltip content="Copy snippet A"><Button variant="ghost" size="xs" onClick={() => copyCode(leftCode, 'Snippet A')} disabled={!leftCode.trim()} className="!px-2">📋</Button></Tooltip>
+                    <Tooltip content="Format indentation"><Button variant="ghost" size="xs" onClick={() => formatAndSet(leftCode, leftLang, setLeftCode, leftEditorViewRef)} disabled={!leftCode.trim()} className="!px-2">✨</Button></Tooltip>
+                    <Tooltip content="Clear snippet A"><Button variant="ghost" size="xs" onClick={() => clearCode(setLeftCode, leftEditorViewRef, 'Snippet A')} disabled={!leftCode.trim()} className="!px-2">🗑️</Button></Tooltip>
+                  </div>
                 </div>
                 <div className="h-64 bg-bg-tertiary/20 dark:bg-bg-tertiary-dark/20 flex flex-col min-h-0">
-                  <CodeEditor code={leftCode} setCode={setLeftCode} language={leftLang} />
+                  <CodeEditor
+                    code={leftCode}
+                    setCode={setLeftCode}
+                    language={leftLang}
+                    onEditorReady={(view) => { leftEditorViewRef.current = view; }}
+                    onUserEdited={(next, kind) => {
+                      if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
+                        tryAutoDetect(next, leftLang, setLeftLang, setLeftAutoDetect);
+                      }
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -1228,17 +1672,21 @@ export default function Analyzer() {
               />
             </div>
           </div>
-          {/* RIGHT */}
+          {/* RIGHT — SNIPPET B */}
           <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-accent-500/30 overflow-hidden hover-lift glow-border">
               <CardContent className="p-0">
-                <div className="px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-transparent">
-                  <div className="flex items-center gap-2">
+                {/* ACTION UTILITIES BAR: SNIPPET B */}
+                <div className="px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-transparent">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="primary" size="sm">Snippet B</Badge>
+                    <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+                      <span className="text-xs">{LANG_META[rightLang].icon}</span>
+                    </div>
                     <select
                       value={rightLang}
-                      onChange={(e) => setRightLang(e.target.value as Language)}
-                      className="bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark border border-text-muted/30 dark:border-text-muted-dark/30 rounded-md px-2 py-1 text-xs focus:outline-none hover:border-accent-500/40 transition-all"
+                      onChange={(e) => { setRightLang(e.target.value as Language); setRightAutoDetect(null); }}
+                      className="select-native select-sm !py-1 !text-xs"
                     >
                       <option value="javascript">JS</option>
                       <option value="typescript">TS</option>
@@ -1246,13 +1694,36 @@ export default function Analyzer() {
                       <option value="java">Java</option>
                       <option value="cpp">C++</option>
                     </select>
+                    <span className="hidden md:inline text-[11px] font-mono text-text-muted dark:text-text-muted-dark truncate">· {FILE_NAME[rightLang]}</span>
+                    {rightAutoDetect && (
+                      <Tooltip content={`Auto-detected ${LANG_META[rightAutoDetect].label} — grammar updated`} position="bottom">
+                        <Badge variant="primary" size="xs" className="animate-bounce-in !text-[9px] !px-1.5 !py-0.5 uppercase">
+                          ✨ {LANG_META[rightAutoDetect].label}
+                        </Badge>
+                      </Tooltip>
+                    )}
                   </div>
-                  <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('right'); setGalleryOpen(true); }}>
-                    Load Sample
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Tooltip content="Sample library (⌘K)" position="bottom">
+                      <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('right'); setGalleryOpen(true); }} className="!px-2">📚</Button>
+                    </Tooltip>
+                    <Tooltip content="Copy snippet B"><Button variant="ghost" size="xs" onClick={() => copyCode(rightCode, 'Snippet B')} disabled={!rightCode.trim()} className="!px-2">📋</Button></Tooltip>
+                    <Tooltip content="Format indentation"><Button variant="ghost" size="xs" onClick={() => formatAndSet(rightCode, rightLang, setRightCode, rightEditorViewRef)} disabled={!rightCode.trim()} className="!px-2">✨</Button></Tooltip>
+                    <Tooltip content="Clear snippet B"><Button variant="ghost" size="xs" onClick={() => clearCode(setRightCode, rightEditorViewRef, 'Snippet B')} disabled={!rightCode.trim()} className="!px-2">🗑️</Button></Tooltip>
+                  </div>
                 </div>
                 <div className="h-64 bg-bg-tertiary/20 dark:bg-bg-tertiary-dark/20 flex flex-col min-h-0">
-                  <CodeEditor code={rightCode} setCode={setRightCode} language={rightLang} />
+                  <CodeEditor
+                    code={rightCode}
+                    setCode={setRightCode}
+                    language={rightLang}
+                    onEditorReady={(view) => { rightEditorViewRef.current = view; }}
+                    onUserEdited={(next, kind) => {
+                      if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
+                        tryAutoDetect(next, rightLang, setRightLang, setRightAutoDetect);
+                      }
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>

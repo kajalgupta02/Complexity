@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { analyzeCode, detectLanguage, type AnalysisResult, type SupportedLanguage, type LoopInfo } from '@/lib/analyzer';
+import { analyzeCode, type AnalysisResult, type SupportedLanguage, type LoopInfo } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
 import type { Sample } from '@/data/samples';
@@ -27,6 +27,7 @@ const LANG_EXTENSIONS: Record<SupportedLanguage, Extension> = {
   typescript: javascript({ typescript: true }),
   python: python(),
   java: java(),
+  c: cpp(),
   cpp: cpp()
 };
 
@@ -35,6 +36,7 @@ const LANG_META: Record<Language, { icon: string; label: string; accent: string 
   typescript: { icon: '🔷', label: 'TypeScript', accent: 'text-blue-600' },
   python:     { icon: '🐍', label: 'Python',     accent: 'text-emerald-600' },
   java:       { icon: '☕', label: 'Java',       accent: 'text-orange-600' },
+  c:          { icon: 'C', label: 'C', accent: 'text-slate-600' },
   cpp:        { icon: '⚙️', label: 'C++',        accent: 'text-sky-600' },
 };
 
@@ -50,12 +52,11 @@ type TabSection =
   | 'optimizations';
 
 const SECTION_TABS: { id: TabSection; label: string; icon: string; hint: string }[] = [
-  { id: 'overview', label: 'Overview', icon: '📊', hint: 'Language, Summary, Algorithm' },
-  { id: 'algorithm', label: 'Execution', icon: '🧠', hint: 'Step-by-step walkthrough' },
-  { id: 'complexity', label: 'Complexity', icon: '⚡', hint: 'Time/Space + Derivation' },
-  { id: 'loops', label: 'Loops & Recursion', icon: '🔁', hint: 'Detailed loop breakdown' },
-  { id: 'memory', label: 'Memory & Perf', icon: '💾', hint: 'Memory usage & notes' },
-  { id: 'optimizations', label: 'Optimizations', icon: '🚀', hint: 'How to make it faster' },
+  { id: 'overview', label: 'Breakdown', icon: '📊', hint: 'Language, summary, and algorithm' },
+  { id: 'complexity', label: 'Complexity', icon: '⚡', hint: 'Time, space, and derivation' },
+  { id: 'loops', label: 'Loops', icon: '🔁', hint: 'Loop and recursion details' },
+  { id: 'memory', label: 'Memory', icon: '💾', hint: 'Memory and performance notes' },
+  { id: 'optimizations', label: 'Optimize', icon: '🚀', hint: 'How to improve it' },
 ];
 
 const FILE_NAME: Record<Language, string> = {
@@ -63,6 +64,7 @@ const FILE_NAME: Record<Language, string> = {
   typescript: 'Main.ts',
   python: 'main.py',
   java: 'Main.java',
+  c: 'main.c',
   cpp: 'main.cpp',
 };
 
@@ -508,6 +510,37 @@ function ResultPanel({ result, analyzing, title, accent }: {
   const [section, setSection] = useState<TabSection>('overview');
   const d = result?.detailed;
 
+  const complexityTone = (value: string) => {
+    if (value.includes('O(1)') || value.includes('O(log')) return 'emerald';
+    if (value.includes('O(n)') || value.includes('O(n log')) return 'indigo';
+    if (value.includes('O(n²)') || value.includes('O(2ⁿ')) return 'amber';
+    return 'slate';
+  };
+
+  const complexityBadge = (value: string) => {
+    const tone = complexityTone(value);
+    const shared = 'inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-black shadow-sm';
+    if (tone === 'emerald') return `${shared} bg-emerald-500/15 text-emerald-600 border border-emerald-500/25`;
+    if (tone === 'indigo') return `${shared} bg-indigo-500/15 text-indigo-600 border border-indigo-500/25`;
+    if (tone === 'amber') return `${shared} bg-amber-500/15 text-amber-600 border border-amber-500/25`;
+    return `${shared} bg-slate-500/10 text-slate-600 border border-slate-500/20`;
+  };
+
+  const chartPoints = useMemo(() => {
+    const base = result?.timeComplexity ?? 'O(1)';
+    const scale = ['O(1)', 'O(n)', 'O(n²)'];
+    const targetIndex = scale.indexOf(base);
+    const points = scale.map((value, index) => ({
+      label: value,
+      x: index * 33.33,
+      y: index === 0 ? 82 : index === 1 ? 52 : 20,
+    }));
+    if (targetIndex >= 0) {
+      points[targetIndex] = { ...points[targetIndex], y: targetIndex === 0 ? 82 : targetIndex === 1 ? 52 : 20 };
+    }
+    return points;
+  }, [result?.timeComplexity]);
+
   if (analyzing) {
     return (
       <Card className="h-full animate-fade-in">
@@ -582,27 +615,22 @@ function ResultPanel({ result, analyzing, title, accent }: {
     );
   }
 
-  const variant = getComplexityColor(d.finalResult.worstTime);
-  const glow = getGlowClass(variant);
-
   return (
     <div className="h-full overflow-y-auto space-y-3 pr-1 snap-results" style={{ scrollbarGutter: 'stable' }}>
       {/* ============ HERO: BIG-O + CONFIDENCE ============ */}
-      <div
-        className="relative overflow-hidden rounded-2xl p-6 border animate-bounce-in snap-result-section"
+      <div className="relative overflow-hidden rounded-2xl border p-5 animate-bounce-in snap-result-section"
         style={{
           background: accent === 'success'
-            ? 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(34,211,238,0.09))'
-            : 'linear-gradient(135deg, rgba(99,102,241,0.14), rgba(34,211,238,0.09))',
-          borderColor: accent === 'success' ? 'rgba(16,185,129,0.32)' : 'rgba(99,102,241,0.32)',
-        }}
-      >
-        <div className="absolute -top-16 -right-16 w-60 h-60 rounded-full opacity-25 blur-3xl"
+            ? 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(34,211,238,0.08))'
+            : 'linear-gradient(135deg, rgba(99,102,241,0.14), rgba(34,211,238,0.08))',
+          borderColor: accent === 'success' ? 'rgba(16,185,129,0.28)' : 'rgba(99,102,241,0.28)',
+        }}>
+        <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full opacity-20 blur-3xl"
           style={{ background: accent === 'success' ? '#10b981' : '#6366f1' }}
         />
-        <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
+        <div className="relative grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <Badge variant="outline" size="sm" className="uppercase tracking-wider text-[10px] font-semibold">
                 {d.programmingLanguage}
               </Badge>
@@ -610,23 +638,38 @@ function ResultPanel({ result, analyzing, title, accent }: {
                 {d.finalResult.difficulty}
               </span>
             </div>
-            <p className="text-xs text-text-tertiary dark:text-text-tertiary-dark mb-1 font-medium uppercase tracking-wide">
-              Time Complexity
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className={complexityBadge(d.timeComplexity.worst)}>{d.timeComplexity.worst}</span>
+              <span className={complexityBadge(d.spaceComplexity.auxiliary)}>{d.spaceComplexity.auxiliary}</span>
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-tertiary dark:text-text-tertiary-dark mb-2">
+              Quick Summary
             </p>
-            <h2 className="text-4xl sm:text-5xl font-black text-gradient stat-number tracking-tight">
-              {d.timeComplexity.worst}
-            </h2>
-            <p className="mt-2 text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed max-w-xl">
+            <p className="text-sm leading-relaxed text-text-secondary dark:text-text-secondary-dark">
               {d.highLevelSummary}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <Tooltip content={`Confidence score: ${Math.round(result.timeConfidence)}%`}>
-              <Badge size="md" variant={variant} className={`text-base px-4 py-1.5 ${glow} animate-count-up`}>
-                {Math.round(result.timeConfidence)}%
-              </Badge>
-            </Tooltip>
-            <div className="flex flex-wrap gap-1.5 justify-end max-w-[220px]">
+          <div className="rounded-2xl border border-white/10 bg-black/5 p-3 dark:bg-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-tertiary dark:text-text-tertiary-dark">
+                Confidence
+              </span>
+              <span className="text-sm font-black text-gradient-accent">{Math.round(result.timeConfidence)}%</span>
+            </div>
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-bg-tertiary dark:bg-bg-tertiary-dark">
+              <div className="h-full rounded-full bg-gradient-to-r from-accent-500 via-highlight-400 to-accent-500 transition-all duration-700" style={{ width: `${result.timeConfidence}%` }} />
+            </div>
+            <div className="mt-3 h-24 rounded-xl bg-gradient-to-br from-accent-500/10 to-highlight-400/10 p-2">
+              <svg viewBox="0 0 100 100" className="h-full w-full">
+                <path d="M0 82 C20 70, 35 58, 50 52 S80 38, 100 20" stroke="rgba(99,102,241,0.9)" strokeWidth="2.5" fill="none" />
+                <path d="M0 82 C20 76, 35 72, 50 60 S80 40, 100 18" stroke="rgba(16,185,129,0.8)" strokeWidth="2.5" fill="none" />
+                <path d="M0 82 C20 82, 35 82, 50 78 S80 70, 100 62" stroke="rgba(239,68,68,0.8)" strokeWidth="2.5" fill="none" />
+                {chartPoints.map((point, index) => (
+                  <circle key={point.label} cx={point.x} cy={point.y} r="2.8" fill={index === 1 ? '#6366f1' : index === 0 ? '#10b981' : '#ef4444'} />
+                ))}
+              </svg>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
               {d.algorithmUsed.slice(0, 3).map((a) => (
                 <Badge key={a} variant="primary" size="xs" className="animate-count-up">
                   {a}
@@ -637,38 +680,22 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       </div>
 
-      {/* ============ CONFIDENCE BAR ============ */}
-      <Card className="snap-result-section animate-slide-up delay-1">
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-text-secondary dark:text-text-secondary-dark">Confidence</span>
-            <span className="text-sm font-bold text-gradient-accent stat-number">{Math.round(result.timeConfidence)}%</span>
-          </div>
-          <div className="w-full h-2.5 bg-bg-tertiary dark:bg-bg-tertiary-dark rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-accent-500 via-highlight-400 to-accent-500 transition-all duration-700 ease-out progress-shine animate-gradient"
-              style={{ width: `${result.timeConfidence}%` }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ============ SECTION TABS ============ */}
       <div className="snap-result-section animate-slide-up delay-2">
-        <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-bg-tertiary/60 dark:bg-bg-tertiary-dark/60 border border-text-muted/10 dark:border-text-muted-dark/10">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-text-muted/10 bg-bg-tertiary/60 p-1.5 dark:border-text-muted-dark/10 dark:bg-bg-tertiary-dark/60">
           {SECTION_TABS.map((tab) => (
             <Tooltip key={tab.id} content={tab.hint} position="bottom">
               <button
                 onClick={() => setSection(tab.id)}
                 className={[
-                  'flex-1 min-w-[90px] px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-200',
+                  'flex-1 min-w-[92px] rounded-lg px-3 py-2 text-[11px] font-semibold transition-all duration-200 flex items-center justify-center gap-1.5',
                   section === tab.id
-                    ? 'bg-bg-secondary dark:bg-bg-secondary-dark text-text-primary dark:text-text-primary-dark shadow-subtle scale-[1.01]'
-                    : 'text-text-tertiary dark:text-text-tertiary-dark hover:text-text-primary dark:hover:text-text-primary-dark hover:bg-bg-secondary/60 dark:hover:bg-bg-secondary-dark/40',
+                    ? 'bg-bg-secondary text-text-primary shadow-subtle dark:bg-bg-secondary-dark dark:text-text-primary-dark'
+                    : 'text-text-tertiary hover:bg-bg-secondary/60 hover:text-text-primary dark:text-text-tertiary-dark dark:hover:bg-bg-secondary-dark/40 dark:hover:text-text-primary-dark',
                 ].join(' ')}
               >
                 <span className="text-sm">{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             </Tooltip>
           ))}
@@ -730,6 +757,47 @@ function ResultPanel({ result, analyzing, title, accent }: {
           <Card className="hover-lift glow-border snap-result-section">
             <CardContent className="p-5">
               <h3 className="section-header text-sm font-bold text-text-primary dark:text-text-primary-dark mb-4">
+                4. Step-by-Step Execution
+              </h3>
+              <ol className="space-y-3">
+                {d.stepByStepExecution.map((s, i) => (
+                  <li key={i} className={`flex gap-3 animate-slide-up delay-${Math.min(i, 10)}`}>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-accent-500 to-highlight-400 flex items-center justify-center text-white font-bold text-sm shadow-subtle">
+                      {s.step}
+                    </div>
+                    <div className="flex-1 pt-1.5">
+                      <p className="text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                        {s.description}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-lift glow-border snap-result-section">
+            <CardContent className="p-5">
+              <h3 className="section-header text-sm font-bold text-text-primary dark:text-text-primary-dark mb-4">
+                5. Formal Proof Sketch
+              </h3>
+              <div className="rounded-2xl border border-accent-500/20 bg-gradient-to-br from-accent-500/5 to-highlight-400/5 p-4">
+                <p className="text-sm font-semibold text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                  For the analyzed routine, the total work can be expressed as the outer-loop iterations multiplied by the cost of the inner operation. In asymptotic form:
+                </p>
+                <div className="mt-3 rounded-xl bg-bg-secondary/70 p-3 font-mono text-sm text-accent-600 dark:bg-bg-secondary-dark/70 dark:text-accent-300">
+                  {d.complexityDerivation.length > 0 ? d.complexityDerivation.map((step) => step.math).filter(Boolean).slice(0, 3).join(' · ') : 'T(n) = O(n)'}
+                </div>
+                <p className="mt-3 text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                  This gives the dominant growth term shown in the hero badge above, which is why the analyzer reports the displayed complexity.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover-lift glow-border snap-result-section">
+            <CardContent className="p-5">
+              <h3 className="section-header text-sm font-bold text-text-primary dark:text-text-primary-dark mb-4">
                 13. Final Result
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -767,33 +835,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ============ STEP-BY-STEP ============ */}
-      {section === 'algorithm' && (
-        <div className="space-y-3 animate-slide-in-right">
-          <Card className="hover-lift glow-border snap-result-section">
-            <CardContent className="p-5">
-              <h3 className="section-header text-sm font-bold text-text-primary dark:text-text-primary-dark mb-4">
-                4. Step-by-Step Execution
-              </h3>
-              <ol className="space-y-3">
-                {d.stepByStepExecution.map((s, i) => (
-                  <li key={i} className={`flex gap-3 animate-slide-up delay-${Math.min(i, 10)}`}>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-accent-500 to-highlight-400 flex items-center justify-center text-white font-bold text-sm shadow-subtle">
-                      {s.step}
-                    </div>
-                    <div className="flex-1 pt-1.5">
-                      <p className="text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                        {s.description}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
             </CardContent>
           </Card>
         </div>
@@ -1171,23 +1212,6 @@ export default function Analyzer() {
     setShowCompareHint(false);
   };
 
-  const tryAutoDetect = useCallback((
-    src: string,
-    currentLang: Language,
-    onDetect: (detected: Language) => void,
-    setBadge: (lang: Language | null) => void,
-  ) => {
-    if (!src.trim()) { setBadge(null); return; }
-    const detected = detectLanguage(src);
-    if (detected !== currentLang) {
-      setBadge(detected);
-      onDetect(detected);
-      addToast('info', `Auto-detected ${LANG_META[detected].label} — grammar switched`);
-    } else {
-      setBadge(null);
-    }
-  }, [addToast]);
-
   const copyCode = useCallback(async (text: string, label = 'Code') => {
     try {
       await navigator.clipboard.writeText(text);
@@ -1444,6 +1468,7 @@ export default function Analyzer() {
                   <option value="typescript">TypeScript</option>
                   <option value="python">Python</option>
                   <option value="java">Java</option>
+                  <option value="c">C</option>
                   <option value="cpp">C++</option>
                 </select>
               </div>
@@ -1591,7 +1616,8 @@ export default function Analyzer() {
                 onEditorReady={(view) => { mainEditorViewRef.current = view; }}
                 onUserEdited={(next, kind) => {
                   if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
-                    tryAutoDetect(next, language, setLanguage, setMainAutoDetect);
+                    void next;
+                    void kind;
                   }
                 }}
               />
@@ -1628,6 +1654,7 @@ export default function Analyzer() {
                       <option value="typescript">TS</option>
                       <option value="python">PY</option>
                       <option value="java">Java</option>
+                      <option value="c">C</option>
                       <option value="cpp">C++</option>
                     </select>
                     <span className="hidden md:inline text-[11px] font-mono text-text-muted dark:text-text-muted-dark truncate">· {FILE_NAME[leftLang]}</span>
@@ -1656,7 +1683,8 @@ export default function Analyzer() {
                     onEditorReady={(view) => { leftEditorViewRef.current = view; }}
                     onUserEdited={(next, kind) => {
                       if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
-                        tryAutoDetect(next, leftLang, setLeftLang, setLeftAutoDetect);
+                        void next;
+                        void kind;
                       }
                     }}
                   />
@@ -1692,6 +1720,7 @@ export default function Analyzer() {
                       <option value="typescript">TS</option>
                       <option value="python">PY</option>
                       <option value="java">Java</option>
+                      <option value="c">C</option>
                       <option value="cpp">C++</option>
                     </select>
                     <span className="hidden md:inline text-[11px] font-mono text-text-muted dark:text-text-muted-dark truncate">· {FILE_NAME[rightLang]}</span>
@@ -1720,7 +1749,8 @@ export default function Analyzer() {
                     onEditorReady={(view) => { rightEditorViewRef.current = view; }}
                     onUserEdited={(next, kind) => {
                       if (kind === 'paste' || (kind === 'input' && next.length > 30)) {
-                        tryAutoDetect(next, rightLang, setRightLang, setRightAutoDetect);
+                        void next;
+                        void kind;
                       }
                     }}
                   />

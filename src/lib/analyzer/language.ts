@@ -1,4 +1,4 @@
-export type SupportedLanguage = 'javascript' | 'typescript' | 'java' | 'cpp' | 'python';
+export type SupportedLanguage = 'javascript' | 'typescript' | 'java' | 'c' | 'cpp' | 'python';
 
 export interface LanguageConfig {
   language: SupportedLanguage;
@@ -64,6 +64,17 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
       'Arrays.binarySearch': 'O(log n)',
     },
   },
+  c: {
+    language: 'c',
+    name: 'C',
+    fileExtensions: ['.c', '.h'],
+    implicitLoopMethods: [],
+    sortMethods: ['qsort'],
+    hashContainerTypes: [],
+    knownComplexityCalls: {
+      'qsort': 'O(n log n)',
+    },
+  },
   cpp: {
     language: 'cpp',
     name: 'C++',
@@ -86,7 +97,12 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
  * Best-effort language auto-detection based on source code content
  */
 export function detectLanguage(source: string): SupportedLanguage {
-  // Heuristic: check for TypeScript-specific syntax first
+  const trimmed = source.trim();
+
+  if (!trimmed) {
+    return 'javascript';
+  }
+
   if (
     /:\s*(string|number|boolean|void|any|never|unknown)\b/.test(source) ||
     /\binterface\s+\w+\s*\{/.test(source) ||
@@ -94,26 +110,30 @@ export function detectLanguage(source: string): SupportedLanguage {
   ) {
     return 'typescript';
   }
-  // Python-specific: def, import with "import x from y" style, indentation patterns, etc.
+
   if (
     /^\s*def\s+\w+\s*\(/m.test(source) ||
-    /\bimport\s+(?:\w+\s*,\s*)*\w+\s*(?:$|\n)/m.test(source) && !/from\s+['"]/.test(source) ||
     /\bprint\s*\(/.test(source) ||
     /\belif\s+/.test(source) ||
     /\bNone\b/.test(source) ||
-    /\bTrue\b|\bFalse\b/.test(source) && !/true\b|false\b/.test(source.toLowerCase().replace(/:/g, ''))
+    /\bTrue\b|\bFalse\b/.test(source)
   ) {
     return 'python';
   }
-  // Java-specific: public class, System.out.println, etc.
+
   if (
     /\bpublic\s+class\s+\w+/.test(source) ||
     /\bSystem\.out\./.test(source) ||
+    /\bimport\s+java\./.test(source) ||
     /\bextends\s+\w+/.test(source)
   ) {
     return 'java';
   }
-  // C++-specific: #include, std::, namespace, etc.
+
+  if (/\b#include\s*<stdio\.h>/.test(source) || /\bint\s+main\s*\(/.test(source) || /\breturn\s+0;/.test(source)) {
+    return 'c';
+  }
+
   if (
     /#include\s*<\w+>/.test(source) ||
     /\bstd::\w+/.test(source) ||
@@ -122,6 +142,6 @@ export function detectLanguage(source: string): SupportedLanguage {
   ) {
     return 'cpp';
   }
-  // Default to JavaScript
+
   return 'javascript';
 }

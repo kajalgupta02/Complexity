@@ -19,6 +19,7 @@ const LANGUAGE_DISPLAY_NAMES: Record<SupportedLanguage, string> = {
   typescript: 'TypeScript',
   python: 'Python',
   java: 'Java',
+  c: 'C',
   cpp: 'C++',
 };
 
@@ -31,40 +32,53 @@ function getFunctionName(source: string): string {
   return match ? match[1] : 'the code';
 }
 
-function summarize(source: string, loops: LoopInfo[], recursion: RecursionInfo, patterns: PatternInfo): string {
+function summarize(source: string, loops: LoopInfo[], recursion: RecursionInfo, patterns: PatternInfo, baseComplexity: ComplexityClass): string {
   const fn = getFunctionName(source);
   const langLines = source.split('\n').length;
+  const complexityLabel = baseComplexity === 'O(1)'
+    ? 'constant-time'
+    : baseComplexity === 'O(log n)'
+    ? 'logarithmic'
+    : baseComplexity === 'O(n)'
+    ? 'linear'
+    : baseComplexity === 'O(n log n)'
+    ? 'linearithmic'
+    : baseComplexity.includes('O(n²)')
+    ? 'quadratic'
+    : baseComplexity === 'O(2ⁿ)'
+    ? 'exponential'
+    : 'predictable';
 
   if (recursion.hasDirectRecursion || recursion.hasMutualRecursion) {
     if (patterns.hasDivideAndConquer) {
-      return `${fn} uses a divide-and-conquer recursive strategy. It repeatedly breaks the problem into smaller subproblems, solves each recursively, and combines the results to produce the answer.`;
+      return `${fn} uses a divide-and-conquer recursive strategy and scales as ${baseComplexity}. It repeatedly breaks the problem into smaller subproblems, solves each recursively, and combines the results to produce the answer.`;
     }
-    return `${fn} uses recursion to solve the problem. It breaks down the input into base cases and smaller self-referential subproblems until a termination condition is reached.`;
+    return `${fn} uses recursion and scales as ${baseComplexity}. It breaks down the input into base cases and smaller self-referential subproblems until a termination condition is reached.`;
   }
 
   if (loops.length > 0) {
     const maxDepth = Math.max(...loops.map((l) => l.nestingDepth));
     if (patterns.hasSortCalls || maxDepth >= 2) {
-      return `${fn} iterates over the input using nested loops (${maxDepth + 1} level${maxDepth > 0 ? 's' : ''}). Each nested iteration multiplies the work performed, processing elements systematically to produce a result.`;
+      return `${fn} uses nested iteration and grows roughly as ${baseComplexity}. Each additional loop layer multiplies the work performed, so the runtime rises quickly with input size.`;
     }
     if (patterns.hasLogarithmicStep) {
-      return `${fn} iterates through the data using a loop that shrinks the search space by a constant factor each step. This logarithmic progression keeps the total number of iterations small.`;
+      return `${fn} uses a logarithmic loop pattern and scales as ${baseComplexity}. The search space shrinks by a constant factor each step, keeping the total work small.`;
     }
     if (patterns.hasImplicitLoops) {
-      return `${fn} processes the input using functional-style iteration methods. Each element of the collection is visited once via built-in higher-order functions.`;
+      return `${fn} processes the input with functional-style iteration and scales as ${baseComplexity}. Each element is visited once through built-in higher-order helpers.`;
     }
-    return `${fn} iterates over its input ${loops.length} time${loops.length > 1 ? 's' : ''}, processing each element in sequence to compute the final result.`;
+    return `${fn} traverses the input in a ${complexityLabel} way (${baseComplexity}), processing each element in sequence to compute the final result.`;
   }
 
   if (patterns.hasSortCalls) {
-    return `${fn} delegates the heavy lifting to a standard-library sort call. Sorting typically involves O(n log n) comparisons and swaps to bring the data into the desired order.`;
+    return `${fn} delegates the heavy lifting to a standard-library sort call and scales as ${baseComplexity}. Sorting typically involves O(n log n) comparisons and swaps to bring data into order.`;
   }
 
   if (langLines <= 5) {
-    return `${fn} performs a simple constant-time operation on the input. No iteration, recursion, or complex data manipulation is involved.`;
+    return `${fn} performs a simple ${complexityLabel} operation (${baseComplexity}) on the input. No iteration, recursion, or complex data manipulation is involved.`;
   }
 
-  return `${fn} processes the given input using straightforward sequential logic. Each statement runs at most once without loops or recursive calls.`;
+  return `${fn} processes the given input using straightforward sequential logic and stays at ${baseComplexity}. Each statement runs at most once without loops or recursive calls.`;
 }
 
 function detectAlgorithms(
@@ -386,6 +400,13 @@ function buildComplexityDerivation(
     });
   }
   const factors = Array(maxNesting + 1).fill('n').join(' × ');
+  const polynomialLabel = maxNesting + 1 === 2
+    ? 'O(n²)'
+    : maxNesting + 1 === 3
+    ? 'O(n³)'
+    : maxNesting + 1 === 4
+    ? 'O(n⁴)'
+    : `O(n^${maxNesting + 1})`;
   steps.push({
     step: stepNum++,
     description: 'Because the loops are nested, their ranges multiply together.',
@@ -394,7 +415,7 @@ function buildComplexityDerivation(
   steps.push({
     step: stepNum++,
     description: `Multiplying gives a polynomial of degree ${maxNesting + 1}.`,
-    math: `O(n^${maxNesting + 1})`,
+    math: polynomialLabel,
   });
 
   return steps;
@@ -652,7 +673,7 @@ export function buildDetailedAnalysis(
 
   return {
     programmingLanguage: LANGUAGE_DISPLAY_NAMES[baseResult.detectedLanguage],
-    highLevelSummary: summarize(source, baseResult.loops, baseResult.recursion, baseResult.patterns),
+    highLevelSummary: summarize(source, baseResult.loops, baseResult.recursion, baseResult.patterns, worst),
     algorithmUsed: algoList,
     stepByStepExecution: buildStepByStep(source, baseResult.loops, baseResult.recursion, baseResult.patterns),
     timeComplexity: {

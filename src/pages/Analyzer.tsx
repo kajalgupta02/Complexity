@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { EditorState, Compartment, StateEffect, StateField, RangeSet, RangeSetBuilder, type Extension } from '@codemirror/state';
+import { Command } from 'cmdk';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { java } from '@codemirror/lang-java';
@@ -8,6 +9,9 @@ import { cpp } from '@codemirror/lang-cpp';
 import { lineNumbers, GutterMarker, gutter, keymap } from '@codemirror/view';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { oneDark } from '@codemirror/theme-one-dark';
+import html2canvas from 'html2canvas';
+import LZString from 'lz-string';
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import type { ViewUpdate } from '@codemirror/view';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -15,7 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { analyzeCode, type AnalysisResult, type SupportedLanguage, type LoopInfo } from '@/lib/analyzer';
+import { analyzeCode, type AnalysisResult, type SupportedLanguage, type LoopInfo, type ComplexityClass } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
 import type { Sample } from '@/data/samples';
@@ -99,6 +103,285 @@ function formatCode(src: string, lang: Language): string {
     indent = Math.max(0, indent);
   }
   return result.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '') + '\n';
+}
+
+type SharePayload = {
+  version: 1;
+  mode: Mode;
+  single?: {
+    code: string;
+    language: Language;
+    result: AnalysisResult | null;
+  };
+  compare?: {
+    leftCode: string;
+    rightCode: string;
+    leftLang: Language;
+    rightLang: Language;
+    leftResult: AnalysisResult | null;
+    rightResult: AnalysisResult | null;
+  };
+};
+
+interface RefactorSuggestion {
+  title: string;
+  explanation: string;
+  code: string;
+}
+
+function encodeSharePayload(payload: SharePayload): string {
+  return LZString.compressToEncodedURIComponent(JSON.stringify(payload));
+}
+
+function decodeSharePayload(encoded: string): SharePayload | null {
+  try {
+    const raw = LZString.decompressFromEncodedURIComponent(encoded);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SharePayload;
+    return parsed?.version === 1 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function hasQuadraticOrWorseComplexity(result: AnalysisResult | null): boolean {
+  if (!result) return false;
+  return getComplexityRank(result.timeComplexity) >= getComplexityRank('O(n²)');
+}
+
+function buildHeuristicRefactor(source: string, language: Language, result: AnalysisResult | null): RefactorSuggestion | null {
+  if (!source.trim() || !hasQuadraticOrWorseComplexity(result)) return null;
+
+  const looksLikePairSearch = /target|sum|pair|two sum|duplicate|contains/i.test(source);
+  const explanation = 'A hash-backed pass removes the nested scan and turns repeated membership checks into O(1) lookups.';
+
+  switch (language) {
+    case 'python':
+      return {
+        title: looksLikePairSearch ? 'Use a set to track complements' : 'Use a set to track seen values',
+        explanation,
+        code: formatCode(looksLikePairSearch
+          ? `def has_pair_sum(nums, target):
+    seen = set()
+    for num in nums:
+        needed = target - num
+        if needed in seen:
+            return True
+        seen.add(num)
+    return False`
+          : `def has_duplicate(values):
+    seen = set()
+    for value in values:
+        if value in seen:
+            return True
+        seen.add(value)
+    return False`, 'python'),
+      };
+    case 'java':
+      return {
+        title: looksLikePairSearch ? 'Use HashSet complements' : 'Use HashSet membership checks',
+        explanation,
+        code: formatCode(looksLikePairSearch
+          ? `public static boolean hasPairSum(int[] nums, int target) {
+    java.util.HashSet<Integer> seen = new java.util.HashSet<>();
+    for (int num : nums) {
+        int needed = target - num;
+        if (seen.contains(needed)) return true;
+        seen.add(num);
+    }
+    return false;
+}`
+          : `public static boolean hasDuplicate(int[] values) {
+    java.util.HashSet<Integer> seen = new java.util.HashSet<>();
+    for (int value : values) {
+        if (seen.contains(value)) return true;
+        seen.add(value);
+    }
+    return false;
+}`, 'java'),
+      };
+    case 'cpp':
+      return {
+        title: looksLikePairSearch ? 'Use an unordered_set for complements' : 'Use an unordered_set for seen values',
+        explanation,
+        code: formatCode(looksLikePairSearch
+          ? `#include <unordered_set>
+#include <vector>
+
+bool hasPairSum(const std::vector<int>& nums, int target) {
+  std::unordered_set<int> seen;
+  for (int num : nums) {
+    int needed = target - num;
+    if (seen.count(needed)) return true;
+    seen.insert(num);
+  }
+  return false;
+}`
+          : `#include <unordered_set>
+#include <vector>
+
+bool hasDuplicate(const std::vector<int>& values) {
+  std::unordered_set<int> seen;
+  for (int value : values) {
+    if (seen.count(value)) return true;
+    seen.insert(value);
+  }
+  return false;
+}`, 'cpp'),
+      };
+    default:
+      return {
+        title: looksLikePairSearch ? 'Use a set to track complements' : 'Use a set to track seen values',
+        explanation,
+        code: formatCode(looksLikePairSearch
+          ? `function hasPairSum(nums, target) {
+  const seen = new Set();
+  for (const num of nums) {
+    const needed = target - num;
+    if (seen.has(needed)) return true;
+    seen.add(num);
+  }
+  return false;
+}`
+          : `function hasDuplicate(values) {
+  const seen = new Set();
+  for (const value of values) {
+    if (seen.has(value)) return true;
+    seen.add(value);
+  }
+  return false;
+}`, language),
+      };
+  }
+}
+
+const pdfStyles = StyleSheet.create({
+  page: {
+    paddingTop: 28,
+    paddingHorizontal: 28,
+    paddingBottom: 28,
+    fontSize: 10,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+    fontFamily: 'Helvetica',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 700,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 9,
+    color: '#475569',
+    marginBottom: 14,
+  },
+  section: {
+    marginBottom: 12,
+    padding: 10,
+    border: '1px solid #e2e8f0',
+    borderRadius: 10,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    marginBottom: 6,
+  },
+  mono: {
+    fontFamily: 'Courier',
+    fontSize: 8.5,
+    whiteSpace: 'pre-wrap',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  column: {
+    flexGrow: 1,
+  },
+});
+
+function AnalysisPdfDocument({
+  mode,
+  code,
+  language,
+  result,
+  leftCode,
+  rightCode,
+  leftLang,
+  rightLang,
+  leftResult,
+  rightResult,
+}: {
+  mode: Mode;
+  code?: string;
+  language?: Language;
+  result?: AnalysisResult | null;
+  leftCode?: string;
+  rightCode?: string;
+  leftLang?: Language;
+  rightLang?: Language;
+  leftResult?: AnalysisResult | null;
+  rightResult?: AnalysisResult | null;
+}) {
+  return (
+    <Document>
+      <Page size="A4" style={pdfStyles.page}>
+        <Text style={pdfStyles.title}>Big-O Analyzer Report</Text>
+        <Text style={pdfStyles.subtitle}>Generated from the live analysis state in the app.</Text>
+        {mode === 'single' && result && (
+          <>
+            <View style={pdfStyles.section}>
+              <Text style={pdfStyles.sectionTitle}>Summary</Text>
+              <Text>{language?.toUpperCase()} · {result.timeComplexity} · {Math.round(result.timeConfidence)}% confidence</Text>
+              <Text style={{ marginTop: 6 }}>{result.detailed.highLevelSummary}</Text>
+            </View>
+            <View style={pdfStyles.section}>
+              <Text style={pdfStyles.sectionTitle}>Snippet</Text>
+              <Text style={pdfStyles.mono}>{code?.slice(0, 3200) ?? ''}</Text>
+            </View>
+            <View style={pdfStyles.section}>
+              <Text style={pdfStyles.sectionTitle}>Optimizations</Text>
+              {result.detailed.possibleOptimizations.slice(0, 5).map((item, index) => (
+                <Text key={index} style={{ marginBottom: 4 }}>• {item}</Text>
+              ))}
+            </View>
+          </>
+        )}
+        {mode === 'compare' && leftResult && rightResult && (
+          <>
+            <View style={pdfStyles.section}>
+              <Text style={pdfStyles.sectionTitle}>Verdict</Text>
+              <Text>{leftResult.timeComplexity} vs {rightResult.timeComplexity}</Text>
+              <Text style={{ marginTop: 6 }}>Snippet A: {leftLang?.toUpperCase()} · Snippet B: {rightLang?.toUpperCase()}</Text>
+            </View>
+            <View style={pdfStyles.row}>
+              <View style={[pdfStyles.section, pdfStyles.column]}>
+                <Text style={pdfStyles.sectionTitle}>Snippet A</Text>
+                <Text>{leftResult.timeComplexity} · {Math.round(leftResult.timeConfidence)}%</Text>
+                <Text style={pdfStyles.mono}>{leftCode?.slice(0, 1800) ?? ''}</Text>
+              </View>
+              <View style={[pdfStyles.section, pdfStyles.column]}>
+                <Text style={pdfStyles.sectionTitle}>Snippet B</Text>
+                <Text>{rightResult.timeComplexity} · {Math.round(rightResult.timeConfidence)}%</Text>
+                <Text style={pdfStyles.mono}>{rightCode?.slice(0, 1800) ?? ''}</Text>
+              </View>
+            </View>
+          </>
+        )}
+      </Page>
+    </Document>
+  );
 }
 
 /**
@@ -244,6 +527,172 @@ const getGlowClass = (v: BadgeVariant): string => {
   if (v === 'primary') return 'glow-primary';
   return '';
 };
+
+type LineTone = 'danger' | 'success';
+
+interface LineAnnotation {
+  label: string;
+  tone: LineTone;
+}
+
+function addLineAnnotation(
+  annotations: Map<number, LineAnnotation[]>,
+  startLine: number,
+  endLine: number,
+  annotation: LineAnnotation,
+) {
+  const start = Math.max(1, Math.min(startLine, endLine));
+  const end = Math.max(start, Math.max(startLine, endLine));
+  for (let line = start; line <= end; line++) {
+    const existing = annotations.get(line);
+    if (existing) {
+      existing.push(annotation);
+    } else {
+      annotations.set(line, [annotation]);
+    }
+  }
+}
+
+function buildLineAnnotations(result: AnalysisResult | null, tone: LineTone): Map<number, LineAnnotation[]> {
+  const annotations = new Map<number, LineAnnotation[]>();
+  if (!result) return annotations;
+
+  for (const loop of result.loops) {
+    addLineAnnotation(annotations, loop.startLine, loop.endLine, {
+      label: `${tone === 'danger' ? 'Hot loop' : 'Efficient loop'} · ${loopComplexityBadge(loop)}`,
+      tone,
+    });
+  }
+
+  for (const call of result.stdlibCalls) {
+    const isCheap = call.complexity === 'O(1)' || call.complexity === 'O(log n)';
+    if ((tone === 'danger' && !isCheap) || (tone === 'success' && isCheap)) {
+      addLineAnnotation(annotations, call.startLine, call.endLine, {
+        label: `${tone === 'danger' ? 'Costly' : 'Fast'} ${call.name}() · ${call.complexity}`,
+        tone,
+      });
+    }
+  }
+
+  if (tone === 'danger') {
+    for (const recursiveFn of result.recursion.recursiveFunctions) {
+      for (const call of recursiveFn.calls) {
+        addLineAnnotation(annotations, call.line, call.line, {
+          label: `Recursive call · ${recursiveFn.name}()` ,
+          tone,
+        });
+      }
+    }
+  }
+
+  return annotations;
+}
+
+function estimateScalingLift(winner: ComplexityClass, loser: ComplexityClass): number {
+  const winnerRank = getComplexityRank(winner);
+  const loserRank = getComplexityRank(loser);
+  if (winnerRank === 99 || loserRank === 99 || winnerRank >= loserRank) return 0;
+  const gap = loserRank - winnerRank;
+  const estimate = Math.min(99.8, 64 + gap * 4.4 + Math.max(0, gap - 2) * 2.2);
+  return Math.round(estimate * 10) / 10;
+}
+
+function formatCompareHeader(winnerSide: 'left' | 'right' | 'tie', leftResult: AnalysisResult, rightResult: AnalysisResult) {
+  if (winnerSide === 'tie') {
+    return {
+      title: '🏁 TIE: Snippet A and Snippet B',
+      winnerLabel: 'No clear winner',
+      subtitle: `${leftResult.timeComplexity} vs ${rightResult.timeComplexity}`,
+      details: 'Both snippets land in the same growth class, so confidence and implementation details decide the edge.',
+      accent: 'highlight',
+    } as const;
+  }
+
+  const winnerLabel = winnerSide === 'left' ? 'Snippet A' : 'Snippet B';
+  const loserLabel = winnerSide === 'left' ? 'Snippet B' : 'Snippet A';
+  const winnerResult = winnerSide === 'left' ? leftResult : rightResult;
+  const loserResult = winnerSide === 'left' ? rightResult : leftResult;
+  const speedLift = estimateScalingLift(winnerResult.timeComplexity, loserResult.timeComplexity);
+
+  return {
+    title: `🏆 WINNER: ${winnerLabel}  (${winnerResult.timeComplexity} Time vs ${loserResult.timeComplexity} Time)`,
+    winnerLabel,
+    subtitle: `⚡ ${speedLift.toFixed(1)}% Faster scaling for large input sizes (n > 100)`,
+    details: `${winnerLabel} is the better asymptotic choice here. Confidence: ${Math.round(winnerResult.timeConfidence)}% vs ${Math.round(loserResult.timeConfidence)}% for ${loserLabel}.`,
+    accent: winnerSide === 'left' ? 'success' : 'primary',
+  } as const;
+}
+
+function CompareLineCostPanel({
+  title,
+  subtitle,
+  code,
+  result,
+  tone,
+}: {
+  title: string;
+  subtitle: string;
+  code: string;
+  result: AnalysisResult | null;
+  tone: LineTone;
+}) {
+  const lines = useMemo(() => code.replace(/\r\n/g, '\n').split('\n'), [code]);
+  const annotations = useMemo(() => buildLineAnnotations(result, tone), [result, tone]);
+  const hasHighlights = annotations.size > 0;
+  const borderClass = tone === 'danger' ? 'border-danger-500/25' : 'border-success-500/25';
+  const accentClass = tone === 'danger' ? 'from-danger-500/10 to-danger-500/0' : 'from-success-500/10 to-success-500/0';
+
+  return (
+    <Card className={`overflow-hidden ${borderClass}`}>
+      <CardContent className="p-0">
+        <div className={`px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 bg-gradient-to-r ${accentClass}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted dark:text-text-muted-dark">{title}</p>
+              <p className="text-[11px] text-text-secondary dark:text-text-secondary-dark mt-0.5">{subtitle}</p>
+            </div>
+            <Badge variant={tone === 'danger' ? 'danger' : 'success'} size="xs">
+              {hasHighlights ? `${annotations.size} highlighted lines` : 'No hotspots detected'}
+            </Badge>
+          </div>
+        </div>
+        <div className="max-h-64 overflow-auto bg-bg-secondary/80 dark:bg-bg-secondary-dark/80">
+          <div className="min-w-full">
+            {lines.map((line, index) => {
+              const lineNumber = index + 1;
+              const lineAnnotations = annotations.get(lineNumber) ?? [];
+              const primary = lineAnnotations[0];
+              const isHot = lineAnnotations.length > 0;
+              const rowTone = primary?.tone ?? tone;
+              const rowClass = isHot
+                ? rowTone === 'danger'
+                  ? 'border-l-danger-500 bg-danger-500/10 text-danger-950 dark:text-danger-100'
+                  : 'border-l-success-500 bg-success-500/10 text-success-950 dark:text-success-100'
+                : 'border-l-transparent text-text-primary dark:text-text-primary-dark';
+
+              return (
+                <div
+                  key={`${title}-${lineNumber}`}
+                  className={`grid grid-cols-[3.25rem_minmax(0,1fr)] gap-3 border-l-4 px-3 py-1.5 font-mono text-[12px] leading-5 ${rowClass}`}
+                >
+                  <div className="text-right tabular-nums text-text-muted dark:text-text-muted-dark select-none">{lineNumber}</div>
+                  <div className="min-w-0 flex items-start gap-2">
+                    <span className="whitespace-pre-wrap break-words flex-1">{line || ' '}</span>
+                    {primary && (
+                      <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${rowTone === 'danger' ? 'bg-danger-500/15 text-danger-700 dark:text-danger-200' : 'bg-success-500/15 text-success-700 dark:text-success-200'}`}>
+                        {primary.label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 const getCurrentTheme = () => {
   const isDark = document.documentElement.classList.contains('dark');
@@ -1195,12 +1644,14 @@ export default function Analyzer() {
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [loadingCompare, setLoadingCompare] = useState(false);
   const [galleryTarget, setGalleryTarget] = useState<'main' | 'left' | 'right'>('main');
   const [showCompareHint, setShowCompareHint] = useState(false);
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const analyzeBtnRef = useRef<HTMLDivElement | null>(null);
+  const exportReportRef = useRef<HTMLDivElement | null>(null);
   const mainEditorViewRef = useRef<EditorView | null>(null);
   const leftEditorViewRef = useRef<EditorView | null>(null);
   const rightEditorViewRef = useRef<EditorView | null>(null);
@@ -1211,6 +1662,99 @@ export default function Analyzer() {
     try { localStorage.setItem('compare-hint-seen-v1', 'true'); } catch { /* ignore */ }
     setShowCompareHint(false);
   };
+
+  const refactorSuggestion = useMemo(() => buildHeuristicRefactor(code, language, result), [code, language, result]);
+
+  const shareCurrentAnalysis = useCallback(async () => {
+    const payload: SharePayload = mode === 'single'
+      ? {
+          version: 1,
+          mode,
+          single: { code, language, result },
+        }
+      : {
+          version: 1,
+          mode,
+          compare: {
+            leftCode,
+            rightCode,
+            leftLang,
+            rightLang,
+            leftResult,
+            rightResult,
+          },
+        };
+
+    const encoded = encodeSharePayload(payload);
+    const shareUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#code=${encoded}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      window.history.replaceState(null, '', shareUrl);
+      addToast('success', 'Share link copied');
+    } catch {
+      addToast('danger', 'Could not copy share link');
+    }
+  }, [addToast, code, language, leftCode, leftLang, leftResult, mode, rightCode, rightLang, rightResult, result]);
+
+  const exportCurrentAnalysisAsPng = useCallback(async () => {
+    if (!exportReportRef.current) {
+      addToast('warning', 'Nothing to export yet');
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(exportReportRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('PNG export failed');
+      downloadBlob(blob, `big-o-analysis-${mode}.png`);
+      addToast('success', 'PNG exported');
+    } catch {
+      addToast('danger', 'PNG export failed');
+    }
+  }, [addToast, mode]);
+
+  const exportCurrentAnalysisAsPdf = useCallback(async () => {
+    try {
+      const blob = await pdf(
+        <AnalysisPdfDocument
+          mode={mode}
+          code={code}
+          language={language}
+          result={result}
+          leftCode={leftCode}
+          rightCode={rightCode}
+          leftLang={leftLang}
+          rightLang={rightLang}
+          leftResult={leftResult}
+          rightResult={rightResult}
+        />,
+      ).toBlob();
+      downloadBlob(blob, `big-o-analysis-${mode}.pdf`);
+      addToast('success', 'PDF exported');
+    } catch {
+      addToast('danger', 'PDF export failed');
+    }
+  }, [addToast, code, language, leftCode, leftLang, leftResult, mode, rightCode, rightLang, rightResult, result]);
+
+  const applyOptimization = useCallback(() => {
+    if (!refactorSuggestion) {
+      addToast('warning', 'No heuristic optimization available for this snippet');
+      return;
+    }
+
+    setCode(refactorSuggestion.code);
+    setShowResults(true);
+    const nextResult = analyzeCode(refactorSuggestion.code, language);
+    setResult(nextResult);
+    setIsAnalyzing(false);
+    applyLoopMarkers(mainEditorViewRef.current, nextResult.loops ?? []);
+    addToast('success', 'Applied optimization');
+  }, [addToast, language, refactorSuggestion]);
 
   const copyCode = useCallback(async (text: string, label = 'Code') => {
     try {
@@ -1306,6 +1850,40 @@ export default function Analyzer() {
     } catch { /* ignore */ }
   }, [mode, analyzeCompare, leftResult, rightResult]);
 
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('code');
+    if (!encoded) return;
+
+    const payload = decodeSharePayload(encoded);
+    if (!payload) return;
+
+    if (payload.mode === 'compare' && payload.compare) {
+      setMode('compare');
+      setLeftCode(payload.compare.leftCode);
+      setRightCode(payload.compare.rightCode);
+      setLeftLang(payload.compare.leftLang);
+      setRightLang(payload.compare.rightLang);
+      setLeftResult(payload.compare.leftResult ?? null);
+      setRightResult(payload.compare.rightResult ?? null);
+      setLoadingCompare(false);
+      setLeftAnalyzing(false);
+      setRightAnalyzing(false);
+      setShowCompareHint(false);
+    } else if (payload.single) {
+      setMode('single');
+      setCode(payload.single.code);
+      setLanguage(payload.single.language);
+      setResult(payload.single.result ?? null);
+      setShowResults(true);
+      setIsAnalyzing(false);
+      setMainAutoDetect(null);
+    }
+  }, []);
+
   const onSelectSample = (sample: Sample) => {
     setGalleryOpen(false);
     const lang = sample.language as Language;
@@ -1339,8 +1917,7 @@ export default function Analyzer() {
         else analyzeCompare();
       } else if (meta && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setGalleryTarget(mode === 'single' ? 'main' : 'left');
-        setGalleryOpen(true);
+        setCommandOpen(true);
       } else if (meta && e.key === '1') {
         e.preventDefault();
         setMode('single');
@@ -1355,6 +1932,7 @@ export default function Analyzer() {
       } else if (e.key === 'Escape') {
         setGalleryOpen(false);
         setShortcutsOpen(false);
+        setCommandOpen(false);
         setShowCompareHint(false);
       }
     };
@@ -1409,12 +1987,12 @@ export default function Analyzer() {
                   Welcome to Compare mode!
                 </p>
                 <p className="text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed">
-                  Two pre-loaded Fibonacci examples are being analyzed side-by-side. The iterative version <span className="font-semibold text-success-500">O(n)</span> crushes the naive recursion <span className="font-semibold text-danger-500">O(2ⁿ)</span> — watch for the winner card below.
+                  Two pre-loaded Fibonacci examples are being analyzed side-by-side. The iterative version <span className="font-semibold text-success-500">O(n)</span> crushes the naive recursion <span className="font-semibold text-danger-500">O(2ⁿ)</span> — the winner banner now stays pinned at the top.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Tooltip content="Press ⌘/Ctrl+K to swap with library samples">
+              <Tooltip content="Press ⌘/Ctrl+K for the command palette">
                 <Badge size="sm" variant="primary">Tip: load your own snippets →</Badge>
               </Tooltip>
               <button
@@ -1533,6 +2111,53 @@ export default function Analyzer() {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-text-muted/10 bg-bg-secondary/75 dark:bg-bg-secondary-dark/75 backdrop-blur px-4 py-3 shadow-subtle flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-text-muted dark:text-text-muted-dark">Production tools</p>
+          <p className="text-sm text-text-secondary dark:text-text-secondary-dark mt-1">
+            Share the current analysis, export it as PDF/PNG, or jump into the command palette with one shortcut.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={shareCurrentAnalysis} className="!text-xs sm:!text-sm">
+            <span className="mr-1">🔗</span> Share Link
+          </Button>
+          <Button variant="ghost" size="sm" onClick={exportCurrentAnalysisAsPng} disabled={mode === 'single' ? !result : !(leftResult && rightResult)} className="!text-xs sm:!text-sm">
+            <span className="mr-1">🖼️</span> PNG
+          </Button>
+          <Button variant="ghost" size="sm" onClick={exportCurrentAnalysisAsPdf} disabled={mode === 'single' ? !result : !(leftResult && rightResult)} className="!text-xs sm:!text-sm">
+            <span className="mr-1">📄</span> PDF
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => setCommandOpen(true)} className="!text-xs sm:!text-sm">
+            <span className="mr-1">⌘K</span> Menu
+          </Button>
+        </div>
+      </div>
+
+      {mode === 'single' && refactorSuggestion && (
+        <Card className="overflow-hidden border-success-500/25 bg-success-500/5 dark:bg-success-500/10 animate-bounce-in">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-success-600 dark:text-success-400">Apply Optimization</p>
+                <h3 className="text-lg font-black text-text-primary dark:text-text-primary-dark mt-1">
+                  {refactorSuggestion.title}
+                </h3>
+                <p className="text-sm text-text-secondary dark:text-text-secondary-dark mt-2 max-w-3xl">
+                  {refactorSuggestion.explanation}
+                </p>
+              </div>
+              <Button variant="success" size="sm" onClick={applyOptimization} className="shrink-0">
+                Apply Optimization
+              </Button>
+            </div>
+            <pre className="mt-4 overflow-x-auto rounded-xl border border-text-muted/10 dark:border-text-muted-dark/10 bg-bg-primary/80 dark:bg-bg-primary-dark/80 p-4 text-xs leading-relaxed text-text-primary dark:text-text-primary-dark font-mono">
+              {refactorSuggestion.code}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Panes */}
       {mode === 'single' ? (
         <div id="reasoning-step" className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
@@ -1561,7 +2186,7 @@ export default function Analyzer() {
               </div>
               {/* RIGHT: Load Sample + Copy Clear Format */}
               <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                <Tooltip content="Open sample library (⌘K)" position="bottom">
+                <Tooltip content="Open command palette (⌘K)" position="bottom">
                   <Button
                     variant="ghost"
                     size="xs"
@@ -1633,9 +2258,49 @@ export default function Analyzer() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* LEFT — SNIPPET A */}
-          <div className="flex flex-col gap-3 min-h-0">
+        <div className="flex flex-col gap-4 flex-1 min-h-0">
+          {renderVerdict && leftResult && rightResult && (
+            <div className="sticky top-2 z-30 animate-bounce-in">
+              {(() => {
+                const banner = formatCompareHeader(renderVerdict.winner, leftResult, rightResult);
+                return (
+                  <Card className={`overflow-hidden border-2 ${renderVerdict.winner === 'left' ? 'border-success-500/50 bg-success-500/5' : renderVerdict.winner === 'right' ? 'border-accent-500/50 bg-accent-500/5' : 'border-highlight-400/50 bg-highlight-400/5'}`}>
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-text-muted dark:text-text-muted-dark mb-2">Compare verdict</p>
+                          <p className="text-xl sm:text-2xl font-black text-text-primary dark:text-text-primary-dark leading-tight">{banner.title}</p>
+                          <p className="mt-1 text-sm sm:text-base text-text-secondary dark:text-text-secondary-dark">{banner.details}</p>
+                        </div>
+                        <div className={`rounded-2xl border px-4 py-3 text-right ${renderVerdict.winner === 'left' ? 'border-success-500/20 bg-success-500/10' : renderVerdict.winner === 'right' ? 'border-accent-500/20 bg-accent-500/10' : 'border-highlight-400/20 bg-highlight-400/10'}`}>
+                          <p className="text-sm font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-[0.18em]">{banner.winnerLabel}</p>
+                          <p className="text-lg sm:text-xl font-black text-text-primary dark:text-text-primary-dark">{banner.subtitle}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-xl border border-text-muted/10 dark:border-text-muted-dark/10 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 px-3 py-2">
+                          <span className="block text-text-muted dark:text-text-muted-dark uppercase tracking-[0.16em] mb-1">Winner</span>
+                          <span className="font-semibold text-text-primary dark:text-text-primary-dark">{renderVerdict.winner === 'left' ? 'Snippet A' : renderVerdict.winner === 'right' ? 'Snippet B' : 'Tie'}</span>
+                        </div>
+                        <div className="rounded-xl border border-text-muted/10 dark:border-text-muted-dark/10 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 px-3 py-2">
+                          <span className="block text-text-muted dark:text-text-muted-dark uppercase tracking-[0.16em] mb-1">Complexity gap</span>
+                          <span className="font-semibold text-text-primary dark:text-text-primary-dark">{leftResult.timeComplexity} vs {rightResult.timeComplexity}</span>
+                        </div>
+                        <div className="rounded-xl border border-text-muted/10 dark:border-text-muted-dark/10 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 px-3 py-2">
+                          <span className="block text-text-muted dark:text-text-muted-dark uppercase tracking-[0.16em] mb-1">Confidence</span>
+                          <span className="font-semibold text-text-primary dark:text-text-primary-dark">{Math.round(renderVerdict.winner === 'left' ? leftResult.timeConfidence : renderVerdict.winner === 'right' ? rightResult.timeConfidence : Math.max(leftResult.timeConfidence, rightResult.timeConfidence))}%</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
+            {/* LEFT — SNIPPET A */}
+            <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-success-500/30 overflow-hidden hover-lift glow-border">
               <CardContent className="p-0">
                 {/* ACTION UTILITIES BAR: SNIPPET A */}
@@ -1667,7 +2332,7 @@ export default function Analyzer() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip content="Sample library (⌘K)" position="bottom">
+                    <Tooltip content="Open command palette (⌘K)" position="bottom">
                       <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('left'); setGalleryOpen(true); }} className="!px-2">📚</Button>
                     </Tooltip>
                     <Tooltip content="Copy snippet A"><Button variant="ghost" size="xs" onClick={() => copyCode(leftCode, 'Snippet A')} disabled={!leftCode.trim()} className="!px-2">📋</Button></Tooltip>
@@ -1691,6 +2356,13 @@ export default function Analyzer() {
                 </div>
               </CardContent>
             </Card>
+            <CompareLineCostPanel
+              title="Cost hotspots"
+              subtitle="Red lines mark costly operations, nested loops, and expensive calls."
+              code={leftCode}
+              result={leftResult}
+              tone="danger"
+            />
             <div className="flex-1 min-h-0 overflow-hidden">
               <ResultPanel
                 result={leftResult}
@@ -1700,6 +2372,7 @@ export default function Analyzer() {
               />
             </div>
           </div>
+          <div className="hidden xl:block self-stretch w-px bg-text-muted/15 dark:bg-text-muted-dark/15 rounded-full" />
           {/* RIGHT — SNIPPET B */}
           <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-accent-500/30 overflow-hidden hover-lift glow-border">
@@ -1733,7 +2406,7 @@ export default function Analyzer() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip content="Sample library (⌘K)" position="bottom">
+                    <Tooltip content="Open command palette (⌘K)" position="bottom">
                       <Button variant="ghost" size="xs" onClick={() => { setGalleryTarget('right'); setGalleryOpen(true); }} className="!px-2">📚</Button>
                     </Tooltip>
                     <Tooltip content="Copy snippet B"><Button variant="ghost" size="xs" onClick={() => copyCode(rightCode, 'Snippet B')} disabled={!rightCode.trim()} className="!px-2">📋</Button></Tooltip>
@@ -1757,6 +2430,13 @@ export default function Analyzer() {
                 </div>
               </CardContent>
             </Card>
+            <CompareLineCostPanel
+              title="Efficiency wins"
+              subtitle="Green lines mark low-cost loops, fast lookups, and tighter paths."
+              code={rightCode}
+              result={rightResult}
+              tone="success"
+            />
             <div className="flex-1 min-h-0 overflow-hidden">
               <ResultPanel
                 result={rightResult}
@@ -1765,30 +2445,8 @@ export default function Analyzer() {
                 accent="primary"
               />
             </div>
-            {renderVerdict && (leftResult && rightResult) && (
-              <div className="animate-bounce-in">
-                <Card className={`border-2 ${
-                  renderVerdict.winner === 'left'
-                    ? 'border-success-500/50 bg-success-500/5'
-                    : renderVerdict.winner === 'right'
-                    ? 'border-accent-500/50 bg-accent-500/5'
-                    : 'border-highlight-400/50 bg-highlight-400/5'
-                }`}>
-                  <CardContent className="py-5 text-center">
-                    <div className="text-5xl mb-3 animate-wiggle">
-                      {renderVerdict.winner === 'tie' ? '🤝' : '🏆'}
-                    </div>
-                    <p className="text-xl font-black text-text-primary dark:text-text-primary-dark mb-2">
-                      {renderVerdict.winner === 'tie' ? "It's a Tie!" : renderVerdict.winner === 'left' ? 'Snippet A Wins!' : 'Snippet B Wins!'}
-                    </p>
-                    <p className="text-sm text-text-secondary dark:text-text-secondary-dark max-w-md mx-auto leading-relaxed">
-                      {renderVerdict.message}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
           </div>
+        </div>
         </div>
       )}
 
@@ -1797,6 +2455,164 @@ export default function Analyzer() {
         onClose={() => setGalleryOpen(false)}
         onSelect={onSelectSample}
       />
+
+      <div
+        ref={exportReportRef}
+        aria-hidden="true"
+        className="fixed -left-[12000px] top-0 w-[980px] bg-white text-slate-900 p-8"
+      >
+        <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-slate-500">Big-O Analyzer</p>
+            <h2 className="text-3xl font-black mt-1">Analysis Report</h2>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-500">Live snapshot</p>
+            <p className="text-sm font-semibold">{mode === 'single' ? 'Single snippet' : 'Compare mode'}</p>
+          </div>
+        </div>
+        {mode === 'single' && result && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Language</p>
+                <p className="mt-1 font-bold">{language}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Time</p>
+                <p className="mt-1 font-bold">{result.timeComplexity}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Confidence</p>
+                <p className="mt-1 font-bold">{Math.round(result.timeConfidence)}%</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 p-5">
+              <p className="text-sm font-bold mb-3">Summary</p>
+              <p className="text-sm leading-relaxed text-slate-700">{result.detailed.highLevelSummary}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 p-5">
+              <p className="text-sm font-bold mb-3">Code</p>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono text-slate-800">{code}</pre>
+            </div>
+          </div>
+        )}
+        {mode === 'compare' && leftResult && rightResult && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Snippet A</p>
+                <p className="mt-1 font-bold">{leftLang} · {leftResult.timeComplexity}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Snippet B</p>
+                <p className="mt-1 font-bold">{rightLang} · {rightResult.timeComplexity}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 p-5">
+              <p className="text-sm font-bold mb-3">Snippet A</p>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono text-slate-800">{leftCode}</pre>
+            </div>
+            <div className="rounded-2xl border border-slate-200 p-5">
+              <p className="text-sm font-bold mb-3">Snippet B</p>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono text-slate-800">{rightCode}</pre>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 px-4 py-2 rounded-full border border-text-muted/15 bg-bg-secondary/90 dark:bg-bg-secondary-dark/90 backdrop-blur shadow-strong text-xs sm:text-sm text-text-secondary dark:text-text-secondary-dark flex items-center gap-2">
+        <span className="hidden sm:inline font-semibold uppercase tracking-[0.2em] text-text-muted dark:text-text-muted-dark">HUD</span>
+        <button onClick={() => setCommandOpen(true)} className="font-medium hover:text-text-primary dark:hover:text-text-primary-dark transition-colors">
+          Press <kbd className="px-1.5 py-0.5 rounded bg-bg-tertiary dark:bg-bg-tertiary-dark border border-text-muted/20">⌘K</kbd> for Library
+        </button>
+      </div>
+
+      <Command.Dialog open={commandOpen} onOpenChange={setCommandOpen} label="Big-O Analyzer command menu">
+        <div className="fixed inset-0 z-[60] bg-black/55 backdrop-blur-sm">
+          <div className="mx-auto mt-24 w-[min(92vw,720px)] overflow-hidden rounded-3xl border border-text-muted/15 bg-bg-secondary dark:bg-bg-secondary-dark shadow-strong">
+            <Command className="w-full">
+              <div className="border-b border-text-muted/10 px-4 py-4">
+                <Command.Input
+                  autoFocus
+                  placeholder="Search actions..."
+                  className="w-full bg-transparent text-base outline-none placeholder:text-text-muted dark:placeholder:text-text-muted-dark text-text-primary dark:text-text-primary-dark"
+                />
+              </div>
+              <Command.List className="max-h-[60vh] overflow-y-auto p-2">
+                <Command.Empty className="px-4 py-8 text-center text-sm text-text-muted dark:text-text-muted-dark">
+                  No matching actions.
+                </Command.Empty>
+                <Command.Group heading="Quick Actions" className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-text-muted dark:text-text-muted-dark">
+                  <Command.Item
+                    onSelect={() => { setGalleryTarget(mode === 'single' ? 'main' : 'left'); setGalleryOpen(true); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Open sample library</span>
+                    <span className="text-xs text-text-muted">📚</span>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => { void shareCurrentAnalysis(); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Copy share link</span>
+                    <span className="text-xs text-text-muted">🔗</span>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => { void exportCurrentAnalysisAsPng(); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Export PNG report</span>
+                    <span className="text-xs text-text-muted">🖼️</span>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => { void exportCurrentAnalysisAsPdf(); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Export PDF report</span>
+                    <span className="text-xs text-text-muted">📄</span>
+                  </Command.Item>
+                  {mode === 'single' && (
+                    <Command.Item
+                      onSelect={() => { applyOptimization(); setCommandOpen(false); }}
+                      disabled={!refactorSuggestion}
+                      className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-success-500/10 data-[selected=true]:text-success-600 disabled:opacity-40"
+                    >
+                      <span>Apply optimization</span>
+                      <span className="text-xs text-text-muted">🚀</span>
+                    </Command.Item>
+                  )}
+                  <Command.Item
+                    onSelect={() => { setShortcutsOpen(true); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Open shortcuts</span>
+                    <span className="text-xs text-text-muted">⌨️</span>
+                  </Command.Item>
+                </Command.Group>
+                <Command.Separator className="my-2 h-px bg-text-muted/10" />
+                <Command.Group heading="Mode" className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-text-muted dark:text-text-muted-dark">
+                  <Command.Item
+                    onSelect={() => { setMode('single'); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Switch to Analyze</span>
+                    <span className="text-xs text-text-muted">🧠</span>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => { setMode('compare'); setCommandOpen(false); }}
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-accent-500/10 data-[selected=true]:text-accent-600"
+                  >
+                    <span>Switch to Compare</span>
+                    <span className="text-xs text-text-muted">⚔️</span>
+                  </Command.Item>
+                </Command.Group>
+              </Command.List>
+            </Command>
+          </div>
+        </div>
+      </Command.Dialog>
+
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <OnboardingTour />
     </div>

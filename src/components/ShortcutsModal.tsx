@@ -13,7 +13,7 @@ const SHORTCUTS = [
   },
   {
     keys: ['Cmd/Ctrl', 'K'],
-    description: 'Open the sample library',
+    description: 'Open the command palette',
   },
   {
     keys: ['Cmd/Ctrl', '1'],

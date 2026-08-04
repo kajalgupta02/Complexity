@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
+import ComplexityCard from '@/components/ComplexityCard';
 import { analyzeCode, type AnalysisResult, type SupportedLanguage, type LoopInfo, type ComplexityClass } from '@/lib/analyzer';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
@@ -1098,17 +1099,19 @@ function ResultPanel({ result, analyzing, title, accent }: {
               {d.highLevelSummary}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/5 p-3 dark:bg-white/5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-tertiary dark:text-text-tertiary-dark">
-                Confidence
-              </span>
-              <span className="text-sm font-black text-gradient-accent">{Math.round(result.timeConfidence)}%</span>
-            </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-bg-tertiary dark:bg-bg-tertiary-dark">
-              <div className="h-full rounded-full bg-gradient-to-r from-accent-500 via-highlight-400 to-accent-500 transition-all duration-700" style={{ width: `${result.timeConfidence}%` }} />
-            </div>
-            <div className="mt-3 h-24 rounded-xl bg-gradient-to-br from-accent-500/10 to-highlight-400/10 p-2">
+          <div className="space-y-3">
+            <ComplexityCard
+              title="Confidence"
+              value={`${Math.round(result.timeConfidence)}%`}
+              confidence={result.timeConfidence}
+              color="text-indigo-300"
+              className="border-white/10 bg-black/10 dark:border-white/10 dark:bg-white/5"
+            >
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-800/80 dark:bg-slate-800">
+                <div className="h-full rounded-full bg-gradient-to-r from-accent-500 via-highlight-400 to-accent-500 transition-all duration-700" style={{ width: `${result.timeConfidence}%` }} />
+              </div>
+            </ComplexityCard>
+            <div className="rounded-2xl border border-white/10 bg-black/5 p-3 dark:bg-white/5">
               <svg viewBox="0 0 100 100" className="h-full w-full">
                 <path d="M0 82 C20 70, 35 58, 50 52 S80 38, 100 20" stroke="rgba(99,102,241,0.9)" strokeWidth="2.5" fill="none" />
                 <path d="M0 82 C20 76, 35 72, 50 60 S80 40, 100 18" stroke="rgba(16,185,129,0.8)" strokeWidth="2.5" fill="none" />
@@ -1118,7 +1121,7 @@ function ResultPanel({ result, analyzing, title, accent }: {
                 ))}
               </svg>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {d.algorithmUsed.slice(0, 3).map((a) => (
                 <Badge key={a} variant="primary" size="xs" className="animate-count-up">
                   {a}

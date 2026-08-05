@@ -145,7 +145,7 @@ body {
    Focus Styles (Accessibility)
    ============================================ */
 *:focus-visible {
-  outline: 2px solid theme('colors.accent.500');
+  outline: 2px solid var(--accent-500);
   outline-offset: 2px;
 }
 
@@ -695,13 +695,14 @@ kbd {
 }
 
 html.dark .select-native {
-  background-color: var(--color-bg-secondary-dark);
-  color: var(--color-text-primary-dark);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   border-color: rgba(107, 114, 128, 0.3);
 }
 
 html.dark .select-native option {
-  background-color: #111827;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
 }
 
 .select-native.select-sm {

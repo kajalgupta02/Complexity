@@ -20,9 +20,9 @@ export type LoopType =
   | 'do-while'
   | 'for-of'
   | 'for-in'
-  | 'range-for' // C++ range-based for
-  | 'enhanced-for' // Java enhanced for
-  | 'implicit-method'; // array methods like forEach, map, etc.
+  | 'range-for'
+  | 'enhanced-for'
+  | 'implicit-method';
 
 export interface StdlibCallInfo {
   name: string;
@@ -43,7 +43,7 @@ export interface LoopInfo {
   bodyText: string;
   nestingDepth: number;
   hasEarlyBreak: boolean;
-  hasUnknownFunctionCalls: string[]; // names of functions called inside loop
+  hasUnknownFunctionCalls: string[];
   hasHashContainerAccess: boolean;
   hasSortCall: boolean;
 }
@@ -84,8 +84,8 @@ export interface ReasoningStep {
     startLine?: number;
     endLine?: number;
   }[];
-  weight: number; // 0-100, how much this step contributes to the verdict
-  confidenceChange: number; // +/- to overall confidence
+  weight: number;
+  confidenceChange: number;
 }
 
 export interface WhatWouldChange {
@@ -93,8 +93,6 @@ export interface WhatWouldChange {
   impact: string;
   evidence?: string;
 }
-
-// ============ NEW: Detailed Analysis Sections ============
 
 export interface LoopAnalysisEntry {
   loopNumber: number;
@@ -169,7 +167,7 @@ export interface AnalysisResult {
   detectedLanguage: SupportedLanguage;
   isPartialAnalysis: boolean;
   timeComplexity: ComplexityClass;
-  timeConfidence: number; // 0-100
+  timeConfidence: number;
   spaceComplexity: SpaceComplexityEstimate;
   loops: LoopInfo[];
   recursion: RecursionInfo;

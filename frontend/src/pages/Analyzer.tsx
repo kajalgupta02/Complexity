@@ -20,7 +20,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Tooltip } from '@/components/ui/Tooltip';
 import ComplexityCard from '@/components/ComplexityCard';
-import { analyzeCode, type AnalysisResult, type SupportedLanguage, type LoopInfo, type ComplexityClass } from '@/lib/analyzer';
+import { type AnalysisResult, type SupportedLanguage, type LoopInfo, type ComplexityClass } from '@/lib/analyzer';
+import { requestAnalysis } from '@/services/api';
 import { useToast } from '@/components/ui/Toast';
 import SampleGallery from '@/components/SampleGallery';
 import type { Sample } from '@/data/samples';
@@ -73,11 +74,6 @@ const FILE_NAME: Record<Language, string> = {
   cpp: 'main.cpp',
 };
 
-/**
- * Heuristic brace-based code formatter (prettier-lite) — works for
- * C-style brace languages (JS/TS/Java/C++). For Python, preserves existing
- * leading whitespace and only trims trailing blank lines.
- */
 function formatCode(src: string, lang: Language): string {
   if (!src.trim()) return '';
   if (lang === 'python') {
@@ -385,10 +381,6 @@ function AnalysisPdfDocument({
   );
 }
 
-/**
- * Map a nesting depth to a Big-O label for display on loop gutter markers.
- * Falls back to the loop header type for implicit-method loops.
- */
 function loopComplexityBadge(loop: LoopInfo): string {
   const depth = loop.nestingDepth;
   if (loop.hasSortCall) return depth === 0 ? 'O(n log n)' : 'O(n² log n)';
@@ -398,7 +390,6 @@ function loopComplexityBadge(loop: LoopInfo): string {
   return `O(n^${depth + 1})`;
 }
 
-/** Gutter marker widget showing an O() badge on detected loop lines. */
 class LoopGutterBadge extends GutterMarker {
   constructor(readonly label: string, readonly depth: number) { super(); }
   eq(other: LoopGutterBadge) { return other.label === this.label; }
@@ -478,7 +469,6 @@ const themeLoopUnderlines = EditorView.baseTheme({
   '.cm-activeLine cm-loopBadge-gutter': {
     background: 'transparent',
   },
-  // Soft squiggly underlines + subtle highlight bg for loops contributing to complexity
   '.cm-loopHighlight-oN': {
     background: 'rgba(245, 158, 11, 0.08)',
     textDecoration: 'wavy underline rgba(245, 158, 11, 0.55)',
@@ -579,7 +569,7 @@ function buildLineAnnotations(result: AnalysisResult | null, tone: LineTone): Ma
     for (const recursiveFn of result.recursion.recursiveFunctions) {
       for (const call of recursiveFn.calls) {
         addLineAnnotation(annotations, call.line, call.line, {
-          label: `Recursive call · ${recursiveFn.name}()` ,
+          label: `Recursive call · ${recursiveFn.name}()`,
           tone,
         });
       }
@@ -616,7 +606,7 @@ function formatCompareHeader(winnerSide: 'left' | 'right' | 'tie', leftResult: A
   const speedLift = estimateScalingLift(winnerResult.timeComplexity, loserResult.timeComplexity);
 
   return {
-    title: `🏆 WINNER: ${winnerLabel}  (${winnerResult.timeComplexity} Time vs ${loserResult.timeComplexity} Time)`,
+    title: `🏆 WINNER: ${winnerLabel} (${winnerResult.timeComplexity} Time vs ${loserResult.timeComplexity} Time)`,
     winnerLabel,
     subtitle: `⚡ ${speedLift.toFixed(1)}% Faster scaling for large input sizes (n > 100)`,
     details: `${winnerLabel} is the better asymptotic choice here. Confidence: ${Math.round(winnerResult.timeConfidence)}% vs ${Math.round(loserResult.timeConfidence)}% for ${loserLabel}.`,
@@ -727,7 +717,7 @@ function buildEditorExtensions(
 ): Extension[] {
   const pasteHandler = keymap.of([{
     key: 'Mod-v',
-    run: () => false, // let CodeMirror default paste run; we detect paste via DOM below
+    run: () => false,
   }]);
   return [
     basicSetup,
@@ -766,7 +756,6 @@ function buildEditorExtensions(
         const next = update.state.doc.toString();
         prevCodeRef.current = next;
         setCode(next);
-        // Infer input event when user types (docChanged without paste/cut)
         if (onUserEdited) {
           const userOriginated = update.transactions.some(
             (t) => t.isUserEvent('input') || t.isUserEvent('delete') || t.isUserEvent('keyboard'),
@@ -835,11 +824,10 @@ function CodeEditor({ code, setCode, language, onEditorReady, onUserEdited }: Co
   const setCodeRef = useRef(setCode);
   setCodeRef.current = setCode;
 
-  // Sync external code prop changes into CodeMirror (e.g. sample loading)
   useEffect(() => {
     if (!viewRef.current) return;
-    if (isSyncingRef.current) return; // mid-sync from user typing
-    if (prevCodeRef.current === code) return; // no actual change
+    if (isSyncingRef.current) return;
+    if (prevCodeRef.current === code) return;
     const current = viewRef.current.state.doc.toString();
     if (current === code) { prevCodeRef.current = code; return; }
     isSyncingRef.current = true;
@@ -850,7 +838,6 @@ function CodeEditor({ code, setCode, language, onEditorReady, onUserEdited }: Co
     requestAnimationFrame(() => { isSyncingRef.current = false; });
   }, [code]);
 
-  // Reconfigure just the language extension via Compartment when `language` changes
   useEffect(() => {
     if (!viewRef.current) return;
     try {
@@ -858,7 +845,6 @@ function CodeEditor({ code, setCode, language, onEditorReady, onUserEdited }: Co
         effects: langCompartment.reconfigure(LANG_EXTENSIONS[language]),
       });
     } catch {
-      // Fallback: full state rebuild if reconfigure rejected
       const currentDoc = viewRef.current.state.doc.toString();
       const state = EditorState.create({
         doc: currentDoc,
@@ -888,7 +874,7 @@ function CodeEditor({ code, setCode, language, onEditorReady, onUserEdited }: Co
         doc: code,
         extensions: [
           coreExts,
-          langCompartment.of([]), // placeholder so reconfigure always works
+          langCompartment.of([]),
         ],
         parent: editorRef.current,
       });
@@ -1067,7 +1053,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
 
   return (
     <div className="h-full overflow-y-auto space-y-3 pr-1 snap-results" style={{ scrollbarGutter: 'stable' }}>
-      {/* ============ HERO: BIG-O + CONFIDENCE ============ */}
       <div className="relative overflow-hidden rounded-2xl border p-5 animate-bounce-in snap-result-section"
         style={{
           background: accent === 'success'
@@ -1132,7 +1117,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       </div>
 
-      {/* ============ SECTION TABS ============ */}
       <div className="snap-result-section animate-slide-up delay-2">
         <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-text-muted/10 bg-bg-tertiary/60 p-1.5 dark:border-text-muted-dark/10 dark:bg-bg-tertiary-dark/60">
           {SECTION_TABS.map((tab) => (
@@ -1154,7 +1138,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       </div>
 
-      {/* ============ OVERVIEW ============ */}
       {section === 'overview' && (
         <div className="space-y-3 animate-slide-in-right">
           <Card className="hover-lift glow-border snap-result-section">
@@ -1292,7 +1275,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       )}
 
-      {/* ============ COMPLEXITY DERIVATION ============ */}
       {section === 'complexity' && (
         <div className="space-y-3 animate-slide-in-right">
           <Card className="hover-lift glow-border snap-result-section">
@@ -1380,7 +1362,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       )}
 
-      {/* ============ LOOPS + RECURSION ============ */}
       {section === 'loops' && (
         <div className="space-y-3 animate-slide-in-right">
           <Card className="hover-lift glow-border snap-result-section">
@@ -1477,7 +1458,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       )}
 
-      {/* ============ MEMORY + PERF NOTES ============ */}
       {section === 'memory' && (
         <div className="space-y-3 animate-slide-in-right">
           <Card className="hover-lift glow-border snap-result-section">
@@ -1553,7 +1533,6 @@ function ResultPanel({ result, analyzing, title, accent }: {
         </div>
       )}
 
-      {/* ============ OPTIMIZATIONS ============ */}
       {section === 'optimizations' && (
         <div className="space-y-3 animate-slide-in-right">
           <Card className="hover-lift glow-border snap-result-section">
@@ -1744,7 +1723,7 @@ export default function Analyzer() {
     }
   }, [addToast, code, language, leftCode, leftLang, leftResult, mode, rightCode, rightLang, rightResult, result]);
 
-  const applyOptimization = useCallback(() => {
+  const applyOptimization = useCallback(async () => {
     if (!refactorSuggestion) {
       addToast('warning', 'No heuristic optimization available for this snippet');
       return;
@@ -1752,11 +1731,15 @@ export default function Analyzer() {
 
     setCode(refactorSuggestion.code);
     setShowResults(true);
-    const nextResult = analyzeCode(refactorSuggestion.code, language);
-    setResult(nextResult);
-    setIsAnalyzing(false);
-    applyLoopMarkers(mainEditorViewRef.current, nextResult.loops ?? []);
-    addToast('success', 'Applied optimization');
+    setIsAnalyzing(true);
+    try {
+      const nextResult = await requestAnalysis(refactorSuggestion.code, language);
+      setResult(nextResult);
+      applyLoopMarkers(mainEditorViewRef.current, nextResult.loops ?? []);
+      addToast('success', 'Applied optimization');
+    } finally {
+      setIsAnalyzing(false);
+    }
   }, [addToast, language, refactorSuggestion]);
 
   const copyCode = useCallback(async (text: string, label = 'Code') => {
@@ -1808,46 +1791,46 @@ export default function Analyzer() {
     addToast('success', 'Code formatted');
   }, [addToast]);
 
-  const analyzeSingle = useCallback(() => {
+  const analyzeSingle = useCallback(async () => {
     if (!code.trim()) return;
     setIsAnalyzing(true);
     setShowResults(true);
-    setTimeout(() => {
-      const analysisResult = analyzeCode(code, language);
+    try {
+      const analysisResult = await requestAnalysis(code, language);
       setResult(analysisResult);
-      setIsAnalyzing(false);
       applyLoopMarkers(mainEditorViewRef.current, analysisResult.loops ?? []);
-    }, 300);
+    } finally {
+      setIsAnalyzing(false);
+    }
   }, [code, language]);
 
-  const analyzeCompare = useCallback(() => {
+  const analyzeCompare = useCallback(async () => {
     setLoadingCompare(true);
     setLeftAnalyzing(true);
     setRightAnalyzing(true);
-    setTimeout(() => {
-      const l = analyzeCode(leftCode, leftLang);
+    try {
+      const [l, r] = await Promise.all([
+        requestAnalysis(leftCode, leftLang),
+        requestAnalysis(rightCode, rightLang),
+      ]);
       setLeftResult(l);
-      setLeftAnalyzing(false);
-      applyLoopMarkers(leftEditorViewRef.current, l.loops ?? []);
-    }, 200);
-    setTimeout(() => {
-      const r = analyzeCode(rightCode, rightLang);
       setRightResult(r);
+      applyLoopMarkers(leftEditorViewRef.current, l.loops ?? []);
+      applyLoopMarkers(rightEditorViewRef.current, r.loops ?? []);
+    } finally {
+      setLeftAnalyzing(false);
       setRightAnalyzing(false);
       setLoadingCompare(false);
-      applyLoopMarkers(rightEditorViewRef.current, r.loops ?? []);
-    }, 400);
+    }
   }, [leftCode, leftLang, rightCode, rightLang]);
 
   useEffect(() => {
-    // First-visit compare mode hint + auto-run verdict (never shown again after dismissal)
     try {
       const compareSeen = localStorage.getItem('compare-hint-seen-v1');
       if (!compareSeen && mode === 'compare') {
         setShowCompareHint(true);
-        // Auto-run once so users immediately see the 🏆 verdict
         if (!leftResult && !rightResult) {
-          setTimeout(() => analyzeCompare(), 350);
+          setTimeout(() => void analyzeCompare(), 350);
         }
       }
     } catch { /* ignore */ }
@@ -1916,8 +1899,8 @@ export default function Analyzer() {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === 'enter') {
         e.preventDefault();
-        if (mode === 'single') analyzeSingle();
-        else analyzeCompare();
+        if (mode === 'single') void analyzeSingle();
+        else void analyzeCompare();
       } else if (meta && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setCommandOpen(true);
@@ -1972,7 +1955,6 @@ export default function Analyzer() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-68px)] max-w-7xl mx-auto px-3 sm:px-6 py-4 gap-4">
-      {/* Compare mode first-visit teaser banner */}
       {showCompareHint && mode === 'compare' && (
         <div className="relative animate-bounce-in">
           <div className="p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3"
@@ -2010,10 +1992,8 @@ export default function Analyzer() {
         </div>
       )}
 
-      {/* ============ UNIFIED PRIMARY ACTION BAR (CONTROL STRIP) ============ */}
       <div className="control-strip p-2 sm:p-2.5 animate-fade-in">
         <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* LEFT GROUP: Mode + Language + Utilities */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <Tabs
               defaultValue={mode}
@@ -2084,7 +2064,6 @@ export default function Analyzer() {
             </div>
           </div>
 
-          {/* RIGHT GROUP: Primary CTA */}
           <div className="flex items-center gap-2" id="analyze-button-step" ref={analyzeBtnRef}>
             <Tooltip content={mode === 'single' ? 'Press ⌘/Ctrl + Enter' : 'Press ⌘/Ctrl + Enter'} position="left">
               <Button
@@ -2161,14 +2140,10 @@ export default function Analyzer() {
         </Card>
       )}
 
-      {/* Main Panes */}
       {mode === 'single' ? (
         <div id="reasoning-step" className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-          {/* Editor Card — glassmorphic container with gradient border */}
           <div className="flex flex-col overflow-hidden modern-card hover-lift">
-            {/* ACTION UTILITIES BAR */}
             <div className="relative z-10 px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-highlight-400/8">
-              {/* LEFT: Language icon + filename + Auto-Detected badge */}
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-bg-tertiary/70 dark:bg-bg-tertiary-dark/70 border border-text-muted/10 dark:border-text-muted-dark/10">
                   <span className="text-sm">{LANG_META[language].icon}</span>
@@ -2187,7 +2162,6 @@ export default function Analyzer() {
                   </Tooltip>
                 )}
               </div>
-              {/* RIGHT: Load Sample + Copy Clear Format */}
               <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <Tooltip content="Open command palette (⌘K)" position="bottom">
                   <Button
@@ -2251,7 +2225,6 @@ export default function Analyzer() {
               />
             </div>
           </div>
-          {/* Results Card */}
           <div className="flex flex-col min-h-0">
             {!showResults ? (
               <ResultPanel result={null} analyzing={false} />
@@ -2302,11 +2275,9 @@ export default function Analyzer() {
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
-            {/* LEFT — SNIPPET A */}
             <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-success-500/30 overflow-hidden hover-lift glow-border">
               <CardContent className="p-0">
-                {/* ACTION UTILITIES BAR: SNIPPET A */}
                 <div className="px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-success-500/8 via-transparent to-transparent">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="success" size="sm">Snippet A</Badge>
@@ -2376,11 +2347,9 @@ export default function Analyzer() {
             </div>
           </div>
           <div className="hidden xl:block self-stretch w-px bg-text-muted/15 dark:bg-text-muted-dark/15 rounded-full" />
-          {/* RIGHT — SNIPPET B */}
           <div className="flex flex-col gap-3 min-h-0">
             <Card className="border-accent-500/30 overflow-hidden hover-lift glow-border">
               <CardContent className="p-0">
-                {/* ACTION UTILITIES BAR: SNIPPET B */}
                 <div className="px-3 sm:px-4 py-2.5 border-b border-text-muted/10 dark:border-text-muted-dark/10 flex items-center justify-between gap-2 bg-gradient-to-r from-accent-500/8 via-transparent to-transparent">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="primary" size="sm">Snippet B</Badge>
@@ -2577,7 +2546,7 @@ export default function Analyzer() {
                   </Command.Item>
                   {mode === 'single' && (
                     <Command.Item
-                      onSelect={() => { applyOptimization(); setCommandOpen(false); }}
+                      onSelect={() => { void applyOptimization(); setCommandOpen(false); }}
                       disabled={!refactorSuggestion}
                       className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm text-text-primary dark:text-text-primary-dark outline-none data-[selected=true]:bg-success-500/10 data-[selected=true]:text-success-600 disabled:opacity-40"
                     >

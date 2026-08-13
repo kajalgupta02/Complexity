@@ -10,7 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" --config .prettierrc",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest"
+    "test": "vitest --run"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

@@ -25,17 +25,14 @@ export function estimateComplexity(
   const whatWouldChange: WhatWouldChange[] = [];
   let hasSortCallInLoop = false;
 
-  // Step 0: Check if any sort calls are inside loops
   for (const loop of loops) {
     if (loop.hasSortCall) {
       hasSortCallInLoop = true;
       break;
     }
   }
-  // Also check standalone sort calls
   const hasStandaloneSort = stdlibCalls.some(call => call.complexity === 'O(n log n)');
 
-  // 1. Recursion analysis
   if (recursion.hasDirectRecursion || recursion.hasMutualRecursion) {
     if (recursion.hasDirectRecursion) detectedPatterns.push('direct recursion');
     if (recursion.hasMutualRecursion) detectedPatterns.push('mutual recursion');
@@ -64,13 +61,11 @@ export function estimateComplexity(
       });
     }
   }
-  // 2. Loop analysis
   else if (loops.length > 0) {
     const maxNestingDepth = Math.max(...loops.map(l => l.nestingDepth));
     detectedPatterns.push(`${loops.length} loop(s) detected`);
     if (maxNestingDepth > 0) detectedPatterns.push(`${maxNestingDepth + 1} levels of nesting`);
 
-    // Determine complexity based on nesting, patterns, and sort calls
     if (hasSortCallInLoop) {
       if (maxNestingDepth === 0) {
         timeComplexity = 'O(n log n)';
@@ -169,7 +164,6 @@ export function estimateComplexity(
       });
     }
 
-    // Adjust confidence for ambiguities in loops
     for (const loop of loops) {
       if (loop.hasEarlyBreak) {
         timeConfidence = Math.max(0, timeConfidence - 15);
@@ -222,7 +216,6 @@ export function estimateComplexity(
       }
     }
   }
-  // 3. Standalone sort calls
   else if (hasStandaloneSort) {
     timeComplexity = 'O(n log n)';
     timeConfidence = 85;
@@ -240,7 +233,6 @@ export function estimateComplexity(
       confidenceChange: -15,
     });
   }
-  // 4. No loops or recursion or sort → O(1)
   else {
     reasoningChain.push({
       id: 'no-loops-recursion',
@@ -252,7 +244,6 @@ export function estimateComplexity(
     });
   }
 
-  // Add other known complexity calls
   for (const call of stdlibCalls) {
     if (call.complexity !== 'O(n log n)') {
       detectedPatterns.push(`${call.name} call (${call.complexity})`);
@@ -262,7 +253,6 @@ export function estimateComplexity(
   if (patterns.hasLogarithmicStep) detectedPatterns.push('logarithmic step pattern');
   if (patterns.hasDivideAndConquer) detectedPatterns.push('divide-and-conquer pattern');
 
-  // Space complexity estimate
   const spaceComplexity: SpaceComplexityEstimate = {
     class: 'O(1)',
     reasoning: ['Space complexity is a heuristic (not fully analyzed yet)'],
@@ -272,7 +262,6 @@ export function estimateComplexity(
     spaceComplexity.reasoning.push('Recursion stack depth → O(n) (heuristic)');
   }
 
-  // Known limitations
   const knownLimitations = [
     'This is a heuristic-based analyzer, not a formal complexity prover',
     'Cannot analyze code inside external/unknown functions',

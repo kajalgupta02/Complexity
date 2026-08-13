@@ -5,14 +5,12 @@ interface FunctionInfo {
   name: string;
   bodyStart: number;
   bodyEnd: number;
-  calls: string[]; // functions called inside this function's body
+  calls: string[];
 }
 
 export function detectRecursion(source: string): RecursionInfo {
-  // Step 1: Extract all function definitions and their calls
   const functions = extractFunctions(source);
 
-  // Step 2: Check for direct recursion
   const directRecursiveFunctions: Array<{ name: string; calls: Array<{ name: string; line: number }> }> = [];
   for (const fn of functions) {
     if (fn.calls.includes(fn.name)) {
@@ -20,7 +18,6 @@ export function detectRecursion(source: string): RecursionInfo {
     }
   }
 
-  // Step 3: Check for mutual recursion using graph cycle detection
   const hasMutualRecursion = hasCycleInFunctionGraph(functions);
 
   return {
@@ -37,7 +34,6 @@ function extractFunctions(source: string): FunctionInfo[] {
     'else', 'try', 'finally', 'new', 'typeof', 'void', 'instanceof', 'in'
   ]);
 
-  // Regex to match function declarations: "function name(...) {"
   const fnRegex = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g;
   let match;
 
@@ -45,7 +41,6 @@ function extractFunctions(source: string): FunctionInfo[] {
     const name = match[1];
     if (keywordSet.has(name)) continue;
 
-    // Find opening brace of function body
     const braceIndex = source.indexOf('{', match.index);
     if (braceIndex === -1) continue;
 

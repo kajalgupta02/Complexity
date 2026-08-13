@@ -4,10 +4,10 @@ export interface LanguageConfig {
   language: SupportedLanguage;
   name: string;
   fileExtensions: string[];
-  implicitLoopMethods: string[]; // e.g., forEach, map, reduce, etc.
-  sortMethods: string[]; // e.g., sort, Collections.sort, std::sort
-  hashContainerTypes: string[]; // e.g., Map, Set, HashMap, HashSet, unordered_map, unordered_set
-  knownComplexityCalls: Record<string, string>; // e.g., binary_search => O(log n)
+  implicitLoopMethods: string[];
+  sortMethods: string[];
+  hashContainerTypes: string[];
+  knownComplexityCalls: Record<string, string>;
 }
 
 export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
@@ -93,9 +93,6 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
   },
 };
 
-/**
- * Best-effort language auto-detection based on source code content
- */
 export function detectLanguage(source: string): SupportedLanguage {
   const trimmed = source.trim();
 

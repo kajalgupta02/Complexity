@@ -1,27 +1,26 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
-import { Tooltip } from '@/components/ui/Tooltip'
-import { useToast } from '@/components/ui/Toast'
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { useToast } from '@/components/ui/Toast';
 
 export default function DesignSystem() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark'
-  })
-  const { addToast } = useToast()
+    return (localStorage.getItem('theme') as 'dark' | 'light') || 'dark';
+  });
+  const { addToast } = useToast();
 
-  // Sync with global theme state
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem('theme', theme)
-  }, [theme])
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark')
-  }
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <div className="min-h-screen p-8 animate-fade-in">
@@ -30,7 +29,7 @@ export default function DesignSystem() {
           <div>
             <h1 className="text-4xl font-bold text-text-primary dark:text-text-primary-dark mb-2">Design System</h1>
             <p className="text-text-tertiary dark:text-text-tertiary-dark">
-              Component library for Big O Analyzer — Phase 5 Complete!
+              Component library for Big O Analyzer
             </p>
           </div>
           <Button onClick={toggleTheme} variant="secondary">
@@ -227,5 +226,5 @@ export default function DesignSystem() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

@@ -1,7 +1,6 @@
 import type { SupportedLanguage, LanguageConfig } from './language';
 import type { StdlibCallInfo, LoopType } from './types';
-import { getLineNumber } from './tokenizer';
-import { findMatchingBrace } from './tokenizer';
+import { getLineNumber, findMatchingBrace } from './tokenizer';
 import { LANGUAGE_CONFIGS } from './language';
 
 export interface StdlibDetectionResult {
@@ -27,7 +26,6 @@ export function detectStdlibCallsAndImplicitLoops(
   const implicitLoops: StdlibDetectionResult['implicitLoops'] = [];
   const seenIndices = new Set<string>();
 
-  // Step 1: Detect implicit loop methods (forEach, map, etc.)
   for (const method of config.implicitLoopMethods) {
     const regex = new RegExp(String.raw`\b${method}\s*\(`, 'g');
     let match;
@@ -37,7 +35,6 @@ export function detectStdlibCallsAndImplicitLoops(
       const closeParenIndex = findMatchingParen(source, openParenIndex);
       if (closeParenIndex === -1) continue;
 
-      // Find end of method call (include any braces for callback functions)
       let endIndex = closeParenIndex;
       const braceIndex = source.indexOf('{', openParenIndex);
       if (braceIndex !== -1 && braceIndex < closeParenIndex + 20) {
@@ -64,7 +61,6 @@ export function detectStdlibCallsAndImplicitLoops(
     }
   }
 
-  // Step 2: Detect sort calls
   for (const sortMethod of config.sortMethods) {
     const regex = new RegExp(
       sortMethod.includes('.')
@@ -94,7 +90,6 @@ export function detectStdlibCallsAndImplicitLoops(
     }
   }
 
-  // Step 3: Detect other known complexity calls
   for (const [callName, complexity] of Object.entries(config.knownComplexityCalls)) {
     const regex = new RegExp(String.raw`\b${callName.replace(/\./g, '\\.')}\s*\(`, 'g');
     let match;

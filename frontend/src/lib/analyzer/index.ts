@@ -52,12 +52,6 @@ function hasStructuralIssues(source: string): boolean {
   return braces !== 0 || parens !== 0 || brackets !== 0;
 }
 
-/**
- * Main analysis engine entrypoint
- * @param source Source code to analyze (supports C/Java/JS-style syntax)
- * @param forceLanguage Optional, force specific language detection
- * @returns AnalysisResult with all complexity estimates and detected patterns
- */
 export function analyzeCode(
   source: string,
   forceLanguage?: SupportedLanguage
@@ -100,22 +94,16 @@ export function analyzeCode(
       };
     }
 
-    // Preprocess source to strip comments/strings/regex
     const strippedSource = stripCommentsAndStrings(source);
 
-    // Check for structural issues (unbalanced braces/parens = malformed code)
     if (hasStructuralIssues(strippedSource)) {
       isPartialAnalysis = true;
     }
 
-    // Detect stdlib calls and implicit loops (use stripped source for pattern matching
-    // but keep original source for position-based evidence)
     const { stdlibCalls, implicitLoops } = detectStdlibCallsAndImplicitLoops(strippedSource, detectedLanguage);
     const hasImplicitLoops = implicitLoops.length > 0;
     const hasSortCalls = stdlibCalls.some(call => call.complexity === 'O(n log n)');
 
-    // Run loop detector (with language support and implicit loops)
-    // Use strippedSource to avoid detecting loops inside comments/strings
     let loops: ReturnType<typeof detectLoops> = [];
     try {
       loops = detectLoops(strippedSource, implicitLoops, detectedLanguage);
@@ -123,7 +111,6 @@ export function analyzeCode(
       isPartialAnalysis = true;
     }
 
-    // Detect recursion
     let recursion: ReturnType<typeof detectRecursion> = {
       hasDirectRecursion: false,
       hasMutualRecursion: false,
@@ -135,7 +122,6 @@ export function analyzeCode(
       isPartialAnalysis = true;
     }
 
-    // Detect patterns
     let patterns: PatternInfo = {
       hasLogarithmicStep: false,
       hasDivideAndConquer: false,
@@ -150,7 +136,6 @@ export function analyzeCode(
       isPartialAnalysis = true;
     }
 
-    // Estimate complexity
     const estimates = estimateComplexity(
       source,
       loops,
@@ -159,7 +144,6 @@ export function analyzeCode(
       stdlibCalls
     );
 
-    // Build final result
     const result: AnalysisResult = {
       ...estimates,
       detectedLanguage,
@@ -180,7 +164,6 @@ export function analyzeCode(
       }),
     };
 
-    // If partial analysis, add warning
     if (isPartialAnalysis) {
       result.error = 'Partial analysis: code appears malformed/incomplete';
       result.timeConfidence = Math.max(0, result.timeConfidence - 20);
@@ -222,7 +205,6 @@ export function analyzeCode(
   }
 }
 
-// Export all modules for testing
 export * from './types';
 export * from './tokenizer';
 export * from './loopDetector';
@@ -231,3 +213,4 @@ export * from './patternDetector';
 export * from './complexityEstimator';
 export * from './language';
 export * from './stdlibDetector';
+export * from './detailedAnalyzer';

@@ -460,7 +460,7 @@ function buildRecursiveAnalysis(source: string, recursion: RecursionInfo, patter
   if (!recursion.hasDirectRecursion && !recursion.hasMutualRecursion) {
     return { hasRecursion: false };
   }
-  const fnNames = recursion.recursiveFunctions.map((r) => r.name);
+  const fnNames = recursion.recursiveFunctions.map((r: { name: string }) => r.name);
   const firstFn = fnNames[0] || getFunctionName(source);
 
   let baseCase = 'No explicit base case detected';

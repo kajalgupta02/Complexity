@@ -102,7 +102,7 @@ export function analyzeCode(
 
     const { stdlibCalls, implicitLoops } = detectStdlibCallsAndImplicitLoops(strippedSource, detectedLanguage);
     const hasImplicitLoops = implicitLoops.length > 0;
-    const hasSortCalls = stdlibCalls.some(call => call.complexity === 'O(n log n)');
+    const hasSortCalls = stdlibCalls.some((call: { complexity?: string }) => call.complexity === 'O(n log n)');
 
     let loops: ReturnType<typeof detectLoops> = [];
     try {

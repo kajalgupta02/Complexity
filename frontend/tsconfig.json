@@ -33,6 +33,6 @@
       "@/services/*": ["./src/services/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../backend/src/analyzer/**/*"],
   "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/test-*.ts", "**/minimal-test.ts"]
 }

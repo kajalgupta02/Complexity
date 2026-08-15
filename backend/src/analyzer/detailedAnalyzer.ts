@@ -21,6 +21,13 @@ const LANGUAGE_DISPLAY_NAMES: Record<SupportedLanguage, string> = {
   java: 'Java',
   c: 'C',
   cpp: 'C++',
+  csharp: 'C#',
+  go: 'Go',
+  rust: 'Rust',
+  swift: 'Swift',
+  kotlin: 'Kotlin',
+  php: 'PHP',
+  ruby: 'Ruby',
 };
 
 function getFunctionName(source: string): string {

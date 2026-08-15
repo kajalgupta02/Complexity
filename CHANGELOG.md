@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.5.0] - 2026-08-15
+### Product Simplification & Polishing
+- **Simplified Navbar**:
+  - Removed auth (Sign In/Sign Up) and user dropdown features
+  - Reduced nav links to essentials only: Home, Analyzer, About
+  - Added "Analyze Code" CTA button for quick access
+  - Kept mobile menu and theme toggle
+- **Minimal Landing Page**:
+  - Removed widget/slider/pricing sections, Big-O cheat sheet table, and FAQ section
+  - Kept focused hero, "How it works" 3-step section, and feature highlights (time + space complexity)
+  - Retained final CTA section
+- **Simplified App Routes**:
+  - Removed routes to `/learn`, `/dashboard`, `/design-system` (kept only `/`, `/analyzer`, `/about`)
+  - Removed `AuthProvider` from App wrapper since auth features were stripped
+- **Simplified About Page**:
+  - Removed fluff sections, kept focused product info
+  - Updated pipeline steps to match current analysis engine
+  - Kept "Principles" section emphasizing honest heuristic estimates and privacy
+- **Minimal Footer**:
+  - Removed multi-column layout, kept simple brand + essential links + copyright
+- **Analyzer Page**:
+  - Already has language auto-detection and 13 language support (including C#)
+  - Already has time + space complexity analysis
+  - Sample algorithm dropdown was not present in current code (kept clean, paste-only workflow)
+- **Overall**: Stripped extra features to focus on core value proposition: paste code, get Big-O analysis.
+
 ## [1.4.0] - 2026-07-21
 ### Phase 5: Visual Identity
 - **Created design system**:

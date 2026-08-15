@@ -1,9 +1,13 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import DesignSystem from '@/pages/DesignSystem';
-import Analyzer from '@/pages/Analyzer';
-import { Button } from '@/components/ui/Button';
 import { ToastProvider } from '@/components/ui/Toast';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+
+// Pages
+import Landing from '@/pages/Landing';
+import Analyzer from '@/pages/Analyzer';
+import About from '@/pages/About';
 
 function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -22,73 +26,16 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col">
-          <header className="navbar-shell sticky top-0 z-40 w-full">
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-                <Link to="/" className="flex items-center gap-3 shrink-0">
-                  <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 via-accent-400 to-highlight-400 flex items-center justify-center shadow-glow">
-                    <div className="absolute -inset-1 bg-gradient-to-br from-accent-500/30 to-highlight-400/30 rounded-xl blur-md opacity-70 -z-10" />
-                    <span className="text-xl font-black text-white drop-shadow-sm">Ω</span>
-                  </div>
-                  <div className="hidden sm:block">
-                    <h1 className="text-lg font-black tracking-tight text-text-primary dark:text-text-primary-dark leading-none">
-                      Big-O Analyzer
-                    </h1>
-                    <p className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark mt-0.5 leading-none">
-                      Complexity Estimator
-                    </p>
-                  </div>
-                </Link>
-                <nav className="hidden md:flex items-center ml-2">
-                  <div className="nav-actions-group">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/design-system">
-                        <span className="mr-1">🎨</span> Design System
-                      </Link>
-                    </Button>
-                  </div>
-                </nav>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                <nav className="md:hidden">
-                  <div className="nav-actions-group">
-                    <Button variant="ghost" size="xs" asChild>
-                      <Link to="/design-system">🎨</Link>
-                    </Button>
-                  </div>
-                </nav>
-                <div className="nav-actions-group" role="group" aria-label="Theme selector">
-                  <Button
-                    variant={theme === 'dark' ? 'primary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setTheme('dark')}
-                    className={theme === 'dark' ? '' : 'text-text-secondary dark:text-text-tertiary'}
-                  >
-                    <span className="mr-1">🌙</span>
-                    <span className="hidden sm:inline">Dark</span>
-                  </Button>
-                  <Button
-                    variant={theme === 'light' ? 'primary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setTheme('light')}
-                    className={theme === 'light' ? '' : 'text-text-secondary dark:text-text-tertiary'}
-                  >
-                    <span className="mr-1">☀️</span>
-                    <span className="hidden sm:inline">Light</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </header>
-
+        <div className="min-h-screen flex flex-col bg-bg-primary dark:bg-bg-primary-dark text-text-primary dark:text-text-primary-dark">
+          <Navbar theme={theme} setTheme={setTheme} />
           <main className="flex-1 w-full">
             <Routes>
-              <Route path="/" element={<Analyzer />} />
-              <Route path="/design-system" element={<DesignSystem />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/analyzer" element={<Analyzer />} />
+              <Route path="/about" element={<About />} />
             </Routes>
           </main>
+          <Footer />
         </div>
       </BrowserRouter>
     </ToastProvider>

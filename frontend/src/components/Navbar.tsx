@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 import { Button } from '@/components/ui/Button';
 
 interface NavbarProps {
@@ -8,12 +10,17 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
+  const { user, logout, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Analyzer', path: '/analyzer' },
+    { name: 'Learn', path: '/learn' },
     { name: 'About', path: '/about' },
   ];
 
@@ -21,6 +28,12 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
+  };
+
+  const openAuth = (mode: 'login' | 'signup') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -78,16 +91,118 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
 
-            {/* CTA */}
-            <Link to="/analyzer" className="hidden sm:block">
-              <Button
-                variant="primary"
-                size="sm"
-                className="text-xs sm:text-sm font-semibold shadow-md shadow-indigo-500/20"
-              >
-                Analyze Code
-              </Button>
-            </Link>
+            {/* User Profile / Auth Actions */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2">
+                <Link to="/dashboard" className="hidden sm:block">
+                  <Button variant="ghost" size="sm" className="text-xs sm:text-sm font-semibold">
+                    Dashboard
+                  </Button>
+                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 hover:border-indigo-500/50 transition-all text-left"
+                  >
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-7 h-7 rounded-lg object-cover bg-indigo-100 dark:bg-indigo-900/50"
+                    />
+                    <div className="hidden sm:block">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">
+                        {user.name}
+                      </p>
+                      <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium leading-none">
+                        Lvl {user.level} • {user.xp} XP
+                      </p>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {userDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setUserDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-xl py-2 z-50 animate-scale-up">
+                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/80">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{user.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+                              {user.plan} Plan
+                            </span>
+                            <span className="text-xs font-medium text-amber-500 flex items-center gap-1">
+                              🔥 {user.streak} day streak
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-1">
+                          <Link
+                            to="/dashboard"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                          >
+                            <span>📊</span> My Dashboard & Stats
+                          </Link>
+                          <Link
+                            to="/dashboard?tab=saved"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                          >
+                            <span>📁</span> Saved Code Snippets
+                          </Link>
+                          <Link
+                            to="/learn"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                          >
+                            <span>🎓</span> Learning Modules
+                          </Link>
+                        </div>
+
+                        <div className="p-1 border-t border-gray-100 dark:border-gray-800/80">
+                          <button
+                            onClick={() => {
+                              logout();
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left"
+                          >
+                            <span>🚪</span> Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openAuth('login')}
+                  className="text-xs sm:text-sm font-semibold"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => openAuth('signup')}
+                  className="text-xs sm:text-sm font-semibold shadow-md shadow-indigo-500/20"
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
 
             {/* Mobile Hamburger Toggle */}
             <button
@@ -123,18 +238,45 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
                 {link.name}
               </Link>
             ))}
-            <Link
-              to="/analyzer"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center mt-2"
-            >
-              <Button variant="primary" size="sm" className="w-full">
-                Analyze Code
-              </Button>
-            </Link>
+            {isAuthenticated && user && (
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Dashboard
+              </Link>
+            )}
+            {!isAuthenticated && (
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openAuth('login')}
+                  className="w-full"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => openAuth('signup')}
+                  className="w-full"
+                >
+                  Sign Up
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </header>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authMode}
+      />
     </>
   );
 };

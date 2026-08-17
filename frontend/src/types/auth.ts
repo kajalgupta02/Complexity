@@ -1,3 +1,18 @@
+export type SupportedLanguage =
+  | 'javascript'
+  | 'typescript'
+  | 'python'
+  | 'java'
+  | 'c'
+  | 'cpp'
+  | 'csharp'
+  | 'go'
+  | 'rust'
+  | 'swift'
+  | 'kotlin'
+  | 'php'
+  | 'ruby';
+
 export interface User {
   id: string;
   name: string;
@@ -15,7 +30,7 @@ export interface SavedAnalysis {
   id: string;
   title: string;
   code: string;
-  language: 'javascript' | 'python' | 'java' | 'cpp';
+  language: SupportedLanguage;
   timeComplexity: string;
   spaceComplexity: string;
   timestamp: string;
@@ -27,7 +42,7 @@ export interface SavedAnalysis {
 export interface AnalysisHistoryItem {
   id: string;
   summary: string;
-  language: 'javascript' | 'python' | 'java' | 'cpp';
+  language: SupportedLanguage;
   timeComplexity: string;
   spaceComplexity: string;
   timestamp: string;
@@ -62,7 +77,7 @@ export interface LearningLesson {
   xpReward: number;
   theory: string[];
   codeExample: {
-    language: 'javascript' | 'python' | 'java' | 'cpp';
+    language: SupportedLanguage;
     code: string;
     explanation: string;
   };

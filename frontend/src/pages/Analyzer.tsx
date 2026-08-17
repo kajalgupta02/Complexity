@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/AuthContext';
 import { analyzeCode, detectLanguage, type AnalysisResult, type SupportedLanguage, type LoopInfo } from '@/lib/analyzer';
 
 type Language = SupportedLanguage;
@@ -188,6 +189,13 @@ function loopComplexityBadge(loop: LoopInfo): string {
   return 'O(n³)';
 }
 
+/** Loop gutter marker spec shape (attached to Decoration.spec) */
+interface LoopMarkerSpec {
+  label: string;
+  depth: number;
+  type: LoopType;
+}
+
 /** Loop gutter badge — small colored pill in the line-number gutter with O(…). */
 class LoopGutterBadge extends GutterMarker {
   constructor(readonly label: string, readonly depth: number) { super(); }
@@ -227,8 +235,8 @@ const loopBadgeGutter = gutter({
     if (!decorations) return RangeSet.empty;
     const builder = new RangeSetBuilder<GutterMarker>();
     const addedLines = new Set<number>();
-    decorations.between(0, view.state.doc.length, (f: number, _t: number, d: any) => {
-      const spec = d?.spec?.loopMarkerSpec as { label: string; depth: number } | undefined;
+    decorations.between(0, view.state.doc.length, (f: number, _t: number, d: Decoration) => {
+      const spec = d?.spec?.loopMarkerSpec as LoopMarkerSpec | undefined;
       if (!spec) return;
       try {
         const line = view.state.doc.lineAt(f);
@@ -270,7 +278,7 @@ const themeLoopUnderlines = EditorView.baseTheme({
 /**
  * Apply gutter markers + inline wavy underlines for each complexity-contributing loop.
  */
-export function applyLoopMarkers(view: EditorView | null, loops: LoopInfo[]) {
+function applyLoopMarkers(view: EditorView | null, loops: LoopInfo[]) {
   if (!view) return;
   try {
     if (loops.length === 0) {
@@ -290,7 +298,7 @@ export function applyLoopMarkers(view: EditorView | null, loops: LoopInfo[]) {
             : loop.nestingDepth === 1
             ? 'cm-loopHighlight-oN2'
             : 'cm-loopHighlight-oN3',
-        loopMarkerSpec: { label, depth: loop.nestingDepth, type: loop.type } as any,
+        loopMarkerSpec: { label, depth: loop.nestingDepth, type: loop.type } satisfies LoopMarkerSpec as unknown as Record<string, unknown>,
         inclusive: true,
         inclusiveStart: true,
         inclusiveEnd: false,
@@ -346,6 +354,7 @@ function formatCode(src: string, lang: Language): string {
 
 export const Analyzer: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { recordAnalysisHistory } = useAuth();
   const { addToast } = useToast();
 
   const [code, setCode] = useState<string>(DEFAULT_SAMPLE_CODE);
@@ -492,6 +501,7 @@ export const Analyzer: React.FC = () => {
       cancelled = true;
       view.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Mount once
 
   // Update language extension dynamically when language changes
@@ -526,6 +536,7 @@ export const Analyzer: React.FC = () => {
       // Auto-run analysis for loaded snippet
       executeAnalysis(qCode, (qLang as Language) || language);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const executeAnalysis = async (codeToAnalyze: string, langToAnalyze: Language) => {
@@ -541,6 +552,19 @@ export const Analyzer: React.FC = () => {
 
       // WIRE: Interactive Line Diagnostics — mark complexity-driving loops in gutter + underline
       applyLoopMarkers(editorViewRef.current, res.loops ?? []);
+
+      // Record to user's analysis history
+      const summary = codeToAnalyze.trim().split('\n')[0].slice(0, 45) || 'Code snippet';
+      const spaceStr = typeof res.spaceComplexity === 'string'
+        ? res.spaceComplexity
+        : res.spaceComplexity?.class || 'O(1)';
+      recordAnalysisHistory({
+        summary,
+        language: langToAnalyze as 'javascript' | 'typescript' | 'python' | 'java' | 'c' | 'cpp' | 'csharp' | 'go' | 'rust' | 'swift' | 'kotlin' | 'php' | 'ruby',
+        timeComplexity: res.timeComplexity,
+        spaceComplexity: spaceStr,
+        code: codeToAnalyze,
+      });
     } catch {
       addToast('danger', 'Analysis encountered an issue.');
       applyLoopMarkers(editorViewRef.current, []);
@@ -904,6 +928,248 @@ export const Analyzer: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* HOW WE CALCULATED IT: complexity derivation */}
+                {result.detailed?.complexityDerivation &&
+                  result.detailed.complexityDerivation.length > 0 && (
+                    <div className="p-5 rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">
+                              📐
+                            </span>
+                            How We Calculated It
+                          </h2>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Step-by-step math that led to the <span className="font-mono font-bold">Big-O</span> verdict.
+                          </p>
+                        </div>
+                        <Badge variant="primary" size="sm">
+                          Worst: {result.timeComplexity}
+                        </Badge>
+                      </div>
+
+                      {/* Step-by-step execution of the algorithm */}
+                      {result.detailed.stepByStepExecution &&
+                        result.detailed.stepByStepExecution.length > 0 && (
+                          <div className="space-y-2">
+                            <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                              1. How the algorithm runs
+                            </h3>
+                            <ol className="space-y-2">
+                              {result.detailed.stepByStepExecution.map((s, i) => (
+                                <li
+                                  key={i}
+                                  className="flex gap-3 p-3 rounded-2xl bg-gray-50/60 dark:bg-[#0c101c]/60 border border-gray-100 dark:border-gray-800/50"
+                                >
+                                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                                    {s.step}
+                                  </span>
+                                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed pt-0.5">
+                                    {s.description}
+                                  </p>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+
+                      {/* Complexity derivation steps */}
+                      <div className="space-y-2">
+                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          2. The complexity math
+                        </h3>
+                        <ol className="space-y-2.5">
+                          {result.detailed.complexityDerivation.map((s, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-3 p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-cyan-50/40 dark:from-indigo-950/25 dark:to-cyan-950/15 border border-indigo-100 dark:border-indigo-900/30"
+                            >
+                              <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-white dark:bg-black/30 border border-gray-200 dark:border-gray-700/60 font-black text-[11px] text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                {s.step}
+                              </span>
+                              <div className="flex-1 pt-0.5 space-y-1.5">
+                                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                                  {s.description}
+                                </p>
+                                {s.math && (
+                                  <code className="inline-block px-3 py-1.5 rounded-lg bg-white dark:bg-black/40 border border-indigo-200/60 dark:border-indigo-800/40 font-mono text-xs font-bold text-indigo-700 dark:text-indigo-300 shadow-sm">
+                                    {s.math}
+                                  </code>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+
+                      {/* Time breakdown (Worst/Avg/Best) + Space in a mini grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                        <div className="p-3 rounded-2xl bg-red-50/70 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-red-500/80 mb-1">Worst</p>
+                          <p className="font-mono font-black text-red-700 dark:text-red-300 text-base">
+                            {result.detailed.timeComplexity?.worst ?? result.timeComplexity}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-amber-500/80 mb-1">Average</p>
+                          <p className="font-mono font-black text-amber-700 dark:text-amber-300 text-base">
+                            {result.detailed.timeComplexity?.average ?? result.timeComplexity}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/80 mb-1">Best</p>
+                          <p className="font-mono font-black text-emerald-700 dark:text-emerald-300 text-base">
+                            {result.detailed.timeComplexity?.best ?? 'O(1)'}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/40">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-cyan-500/80 mb-1">Space</p>
+                          <p className="font-mono font-black text-cyan-700 dark:text-cyan-300 text-base">
+                            {result.detailed.spaceComplexity?.auxiliary ?? spaceComplexityDisplay}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {/* OPTIMIZATION SUGGESTIONS */}
+                {result.detailed?.possibleOptimizations &&
+                  result.detailed.possibleOptimizations.length > 0 && (
+                    <div className="p-5 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-cyan-50 dark:from-emerald-950/25 dark:via-[#111726] dark:to-cyan-950/25 border border-emerald-200/70 dark:border-emerald-800/30 shadow-sm space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-2xl shadow-md shadow-emerald-500/30 flex-shrink-0">
+                            🚀
+                          </div>
+                          <div>
+                            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white">
+                              Optimization Suggestions
+                            </h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              Practical changes to speed this up and improve its Big-O.
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="success" size="sm">
+                          {result.detailed.possibleOptimizations.length} ideas
+                        </Badge>
+                      </div>
+
+                      {/* What it currently does */}
+                      {result.detailed.highLevelSummary && (
+                        <div className="p-3 rounded-2xl bg-white/70 dark:bg-black/30 border border-gray-200 dark:border-gray-700/50">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                            Current approach
+                          </p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {result.detailed.highLevelSummary}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Suggestions list */}
+                      <ol className="space-y-2.5">
+                        {result.detailed.possibleOptimizations.map((opt, i) => (
+                          <li
+                            key={i}
+                            className="flex gap-3 p-3.5 rounded-2xl bg-white/80 dark:bg-black/35 border border-gray-100 dark:border-gray-800/60 hover:border-emerald-400/50 dark:hover:border-emerald-600/40 hover:shadow-sm transition-all"
+                          >
+                            <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white font-black text-sm flex items-center justify-center shadow-sm">
+                              {i + 1}
+                            </span>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed pt-1">
+                              {opt}
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+
+                      {/* Algorithm tags that detected it */}
+                      {result.detailed.algorithmUsed && result.detailed.algorithmUsed.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mr-1.5">
+                            Detected patterns
+                          </span>
+                          {result.detailed.algorithmUsed.map((algo, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[11px] font-bold"
+                            >
+                              🧩 {algo}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {/* Performance Notes (detailed) */}
+                {result.detailed?.performanceNotes && result.detailed.performanceNotes.length > 0 && (
+                  <div className="p-5 rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+                    <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm">
+                        ⚠️
+                      </span>
+                      Performance Notes
+                    </h3>
+                    <ul className="space-y-2">
+                      {result.detailed.performanceNotes.map((note, i) => (
+                        <li
+                          key={i}
+                          className="flex gap-2.5 p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/15 border border-amber-100/60 dark:border-amber-900/30"
+                        >
+                          <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{note}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Memory usage breakdown */}
+                {result.detailed?.memoryUsage && result.detailed.memoryUsage.length > 0 && (
+                  <div className="p-5 rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-3">
+                    <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-sm">
+                        💾
+                      </span>
+                      Memory Usage Breakdown
+                    </h3>
+                    <ul className="space-y-2">
+                      {result.detailed.memoryUsage.map((m, i) => (
+                        <li
+                          key={i}
+                          className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${
+                            m.affectsComplexity
+                              ? 'bg-cyan-50/60 dark:bg-cyan-950/15 border-cyan-200/60 dark:border-cyan-800/40'
+                              : 'bg-gray-50/60 dark:bg-[#0c101c]/60 border-gray-200/70 dark:border-gray-800/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-8 h-8 rounded-lg bg-white dark:bg-black/30 border border-gray-200 dark:border-gray-700/60 flex items-center justify-center text-base flex-shrink-0">
+                              {m.type === 'Array' ? '📦' :
+                               m.type === 'HashMap' ? '🗂️' :
+                               m.type === 'HashSet' ? '🧺' :
+                               m.type === 'Stack' || m.type === 'RecursionStack' ? '🥞' :
+                               m.type === 'Queue' ? '🚶' : '🧱'}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{m.name}</p>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{m.note}</p>
+                            </div>
+                          </div>
+                          {m.affectsComplexity ? (
+                            <Badge variant="warning" size="xs">Affects O</Badge>
+                          ) : (
+                            <Badge variant="success" size="xs">No impact</Badge>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-8 sm:p-10 text-center rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-5 h-[650px] flex flex-col items-center justify-center">

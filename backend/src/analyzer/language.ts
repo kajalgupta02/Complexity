@@ -200,7 +200,7 @@ export function detectLanguage(source: string): SupportedLanguage {
     /\busing\s+System[\.;]/.test(source) ||
     /\busing\s+System\.Collections\.Generic/.test(source) ||
     /\bnamespace\s+\w+(?:\.\w+)+\s*\{/.test(source) ||
-    /\bIEnumerator\b|\bIEnumerable<|\bIList<|\bList<|\bDictionary<|\bHashSet<|\bTask<|Action<|Func<|=>\s*(?!function)/.test(source) ||
+    /\bIEnumerator\b|\bIEnumerable<|\bIList<|\bList<|\bDictionary<|\bHashSet<|\bTask<|Action<|Func</.test(source) ||
     /\bpublic\s+partial\s+class\b|\bstatic\s+void\s+Main\s*\(\s*string\[\]\s+\w+\s*\)/.test(source) ||
     /\bConsole\.(Write|WriteLine|ReadLine)\b/.test(source)
   ) {
@@ -303,8 +303,8 @@ export function detectLanguage(source: string): SupportedLanguage {
 
   // --- TYPE: C ---
   if (
-    /\b#include\s*<stdio\.h>/.test(source) ||
-    (/\b#include\s*<stdlib\.h>/.test(source) && !/\bcout\b|\bstd::/.test(source)) ||
+    /#include\s*<stdio\.h>/.test(source) ||
+    (/#include\s*<stdlib\.h>/.test(source) && !(/\bcout\b/.test(source) || /\bstd::/.test(source))) ||
     (/\bint\s+main\s*\([^)]*\)\s*\{/.test(source) && !/return\s+0\s*;\s*\}\s*$/.test(source.split(/\bint\s+main/).slice(-1)[0]))
   ) {
     return 'c';
@@ -312,7 +312,7 @@ export function detectLanguage(source: string): SupportedLanguage {
 
   // --- TYPE: C++ ---
   if (
-    /#include\s*<\w+>/.test(source) ||
+    /#include\s*<(?:iostream|vector|string|map|set|unordered_map|unordered_set|algorithm|memory|functional|utility|tuple|optional|variant|any|ranges|format|regex)>/.test(source) ||
     /\bstd::\w+/.test(source) ||
     /\bnamespace\s+\w+/.test(source) ||
     /\btemplate\s*<.*>/.test(source)

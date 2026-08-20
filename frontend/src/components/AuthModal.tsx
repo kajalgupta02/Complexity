@@ -96,8 +96,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {mode === 'login'
-              ? 'Sign in to access your saved analyses, history, and learning progress.'
-              : 'Join thousands of engineers mastering time & space complexity.'}
+              ? 'Sign in to access your saved analyses. All data is securely stored locally in your browser.'
+              : 'Create an account to track your learning progress. All data is securely stored locally in your browser.'}
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="w-full py-2.5 text-sm font-semibold shadow-lg shadow-indigo-500/20"
             disabled={loading}
           >
-            {loading ? 'Authenticating...' : mode === 'login' ? 'Sign In' : 'Create Free Account'}
+            {loading ? 'Authenticating...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
         </form>
 
@@ -200,7 +200,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="w-full border-t border-gray-200 dark:border-gray-800" />
           </div>
           <span className="relative px-3 bg-white dark:bg-[#111726] text-xs uppercase tracking-wider text-gray-400">
-            Or quick access
+            Or
           </span>
         </div>
 
@@ -209,10 +209,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="button"
             onClick={handleDemoLogin}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 text-sm font-semibold transition-all"
+            className="w-full flex flex-col items-center justify-center gap-1 py-3 px-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-all"
           >
-            <span>⚡</span>
-            <span>1-Click Demo (Alex Rivera, Pro)</span>
+            <span className="font-semibold text-sm">Continue as Guest</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Analyze code without creating an account.</span>
           </button>
 
           <div className="grid grid-cols-2 gap-2.5">

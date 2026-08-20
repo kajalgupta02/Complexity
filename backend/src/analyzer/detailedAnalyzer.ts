@@ -40,52 +40,47 @@ function getFunctionName(source: string): string {
 }
 
 function summarize(source: string, loops: LoopInfo[], recursion: RecursionInfo, patterns: PatternInfo, baseComplexity: ComplexityClass): string {
-  const fn = getFunctionName(source);
   const langLines = source.split('\n').length;
-  const complexityLabel = baseComplexity === 'O(1)'
-    ? 'constant-time'
-    : baseComplexity === 'O(log n)'
-    ? 'logarithmic'
-    : baseComplexity === 'O(n)'
-    ? 'linear'
-    : baseComplexity === 'O(n log n)'
-    ? 'linearithmic'
-    : baseComplexity.includes('O(n²)')
-    ? 'quadratic'
-    : baseComplexity === 'O(2ⁿ)'
-    ? 'exponential'
-    : 'predictable';
 
   if (recursion.hasDirectRecursion || recursion.hasMutualRecursion) {
     if (patterns.hasDivideAndConquer) {
-      return `${fn} uses a divide-and-conquer recursive strategy and scales as ${baseComplexity}. It repeatedly breaks the problem into smaller subproblems, solves each recursively, and combines the results to produce the answer.`;
+      return `Your code uses divide-and-conquer recursion. It repeatedly breaks the problem into equal halves across log n levels and performs O(n) work per level, resulting in approximately n × log n operations.`;
     }
-    return `${fn} uses recursion and scales as ${baseComplexity}. It breaks down the input into base cases and smaller self-referential subproblems until a termination condition is reached.`;
+    if (baseComplexity === 'O(2ⁿ)') {
+      return `Your code uses branching recursion with multiple recursive calls per step. The number of calls doubles at each level of the recursion tree, leading to an exponential 2ⁿ growth in operations.`;
+    }
+    return `Your code uses recursion. Each recursive call processes a subproblem until the base case is reached, requiring work proportional to the recursion depth and branching factor.`;
   }
 
   if (loops.length > 0) {
     const maxDepth = Math.max(...loops.map((l) => l.nestingDepth));
-    if (patterns.hasSortCalls || maxDepth >= 2) {
-      return `${fn} uses nested iteration and grows roughly as ${baseComplexity}. Each additional loop layer multiplies the work performed, so the runtime rises quickly with input size.`;
+    if (patterns.hasSortCalls && maxDepth >= 1) {
+      return `Your code executes a built-in sort (O(n log n)) inside a loop nest of depth ${maxDepth + 1}. The sorting cost multiplies with each loop level, resulting in ${baseComplexity}.`;
+    }
+    if (maxDepth === 1) {
+      return `Your code contains two nested loops. The inner loop runs for each iteration of the outer loop, resulting in approximately n × n operations.`;
+    }
+    if (maxDepth >= 2) {
+      return `Your code contains ${maxDepth + 1} nested loops. Each additional loop level multiplies the number of iterations, resulting in approximately n^${maxDepth + 1} operations (${baseComplexity}).`;
     }
     if (patterns.hasLogarithmicStep) {
-      return `${fn} uses a logarithmic loop pattern and scales as ${baseComplexity}. The search space shrinks by a constant factor each step, keeping the total work small.`;
+      return `Your code contains a loop that halves (or multiplies) the remaining search range on each step. Halving the input repeatedly takes approximately log₂(n) operations.`;
     }
     if (patterns.hasImplicitLoops) {
-      return `${fn} processes the input with functional-style iteration and scales as ${baseComplexity}. Each element is visited once through built-in higher-order helpers.`;
+      return `Your code uses functional iteration helpers (such as map or forEach). Each element is processed once in sequence, resulting in approximately n operations.`;
     }
-    return `${fn} traverses the input in a ${complexityLabel} way (${baseComplexity}), processing each element in sequence to compute the final result.`;
+    return `Your code contains a single linear loop. It visits each element once in sequence, resulting in approximately n operations.`;
   }
 
   if (patterns.hasSortCalls) {
-    return `${fn} delegates the heavy lifting to a standard-library sort call and scales as ${baseComplexity}. Sorting typically involves O(n log n) comparisons and swaps to bring data into order.`;
+    return `Your code uses a standard-library sort operation. Typical comparison sorting requires approximately n × log n comparisons and swaps.`;
   }
 
   if (langLines <= 5) {
-    return `${fn} performs a simple ${complexityLabel} operation (${baseComplexity}) on the input. No iteration, recursion, or complex data manipulation is involved.`;
+    return `Your code performs a simple constant-time operation. No loops, recursion, or dynamic data manipulations are involved, so the amount of work does not depend on input size.`;
   }
 
-  return `${fn} processes the given input using straightforward sequential logic and stays at ${baseComplexity}. Each statement runs at most once without loops or recursive calls.`;
+  return `Your code runs sequential statements without loops or recursive calls. Each instruction executes once, meaning work remains constant O(1) regardless of input size.`;
 }
 
 function detectAlgorithms(

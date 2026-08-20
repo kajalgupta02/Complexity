@@ -12,31 +12,35 @@ interface TourStep {
 const STEPS: TourStep[] = [
   {
     id: 1,
-    title: 'Paste or type your code',
-    description: 'Drop your algorithm here and pick your language above. We support JS, TS, Python, Java, and C++ out of the box.',
+    title: 'Paste or write your code',
+    description:
+      'Enter your algorithm in the editor. Complexity supports 13 languages including JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, Swift, Kotlin, PHP, and Ruby with automatic detection.',
     selector: 'code-editor-step',
     placement: 'right',
   },
   {
     id: 2,
-    title: 'Analyze with one click',
-    description: 'Hit this button or press ⌘/Ctrl + Enter. The engine strips comments, detects loops, and maps recursion automatically.',
+    title: 'Analyze Complexity with one click',
+    description:
+      'Click "Analyze Complexity" or press ⌘/Ctrl + Enter. The static heuristic analyzer parses loops, nesting depth, recursion, and built-in methods without executing your code.',
     selector: 'analyze-button-step',
-    placement: 'top',
+    placement: 'bottom',
   },
   {
     id: 3,
-    title: 'Read the 13-section breakdown',
-    description: 'From Big-O class to step-by-step complexity derivation — every verdict comes with a full educational walkthrough.',
-    selector: 'reasoning-step',
-    placement: 'left',
+    title: 'Browse preset example algorithms',
+    description:
+      'Explore pre-built examples ranging from O(1) hash lookups and O(log n) binary search to O(n²) matrix operations and O(2ⁿ) recursive branching.',
+    selector: 'sample-gallery-step',
+    placement: 'bottom',
   },
   {
     id: 4,
-    title: 'Browse the sample library',
-    description: 'Press ⌘/Ctrl + K anytime to open a searchable gallery of O(1), O(log n), O(n²), O(n³) and O(2ⁿ) examples across 4 languages.',
-    selector: 'library-step',
-    placement: 'bottom',
+    title: 'Explore results & mathematical derivations',
+    description:
+      'Review your Time and Space Complexity bounds, confidence ratings, step-by-step math explanations, loop diagnostics, and practical optimization suggestions.',
+    selector: 'results-step',
+    placement: 'left',
   },
 ];
 
@@ -78,10 +82,13 @@ function getCardPosition(elRect: Rect, placement: TourStep['placement']): { top:
   left = Math.max(24, Math.min(viewport.w - CARD_WIDTH - 24, left));
 
   const arrowClass =
-    placement === 'top' ? 'after:top-full after:mx-auto after:left-1/2 after:-translate-x-1/2 after:border-t-bg-secondary-dark/0 dark:after:border-t-bg-secondary-dark'
-    : placement === 'bottom' ? 'after:bottom-full after:mx-auto after:left-1/2 after:-translate-x-1/2 after:border-b-bg-secondary-dark/0 dark:after:border-b-bg-secondary-dark'
-    : placement === 'left' ? 'after:left-full after:top-1/2 after:-translate-y-1/2 after:border-l-bg-secondary-dark/0 dark:after:border-l-bg-secondary-dark'
-    : 'after:right-full after:top-1/2 after:-translate-y-1/2 after:border-r-bg-secondary-dark/0 dark:after:border-r-bg-secondary-dark';
+    placement === 'top'
+      ? 'after:top-full after:mx-auto after:left-1/2 after:-translate-x-1/2'
+      : placement === 'bottom'
+      ? 'after:bottom-full after:mx-auto after:left-1/2 after:-translate-x-1/2'
+      : placement === 'left'
+      ? 'after:left-full after:top-1/2 after:-translate-y-1/2'
+      : 'after:right-full after:top-1/2 after:-translate-y-1/2';
 
   return { top, left, arrow: arrowClass };
 }
@@ -122,7 +129,8 @@ export default function OnboardingTour() {
             height: r.height + SPOTLIGHT_PADDING * 2,
           });
         } else {
-          const w = 400, h = 200;
+          const w = 400,
+            h = 200;
           setTargetRect({
             top: (window.innerHeight - h) / 2,
             left: (window.innerWidth - w) / 2,
@@ -145,7 +153,11 @@ export default function OnboardingTour() {
   }, [currentStep, isVisible, step]);
 
   const dismiss = () => {
-    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, 'true');
+    } catch {
+      /* ignore */
+    }
     setIsVisible(false);
   };
 
@@ -201,21 +213,21 @@ export default function OnboardingTour() {
             onClick={dismiss}
           />
           <div
-            className="absolute rounded-2xl pointer-events-none animate-pop-in"
+            className="absolute rounded-2xl pointer-events-none"
             style={{
               top: targetRect.top,
               left: targetRect.left,
               width: targetRect.width,
               height: targetRect.height,
               boxShadow:
-                '0 0 0 2px rgba(102,56,255,0.9), 0 0 0 4px rgba(0,228,255,0.6), 0 0 40px rgba(102,56,255,0.5), inset 0 0 20px rgba(102,56,255,0.2)',
+                '0 0 0 2px rgba(99,102,241,0.9), 0 0 0 4px rgba(6,182,212,0.6), 0 0 40px rgba(99,102,241,0.4)',
             }}
           />
         </>
       )}
 
       <div
-        className="absolute pointer-events-auto animate-bounce-in"
+        className="absolute pointer-events-auto"
         style={{
           top: cardPosition.top,
           left: cardPosition.left,
@@ -223,35 +235,35 @@ export default function OnboardingTour() {
           maxWidth: 'calc(100vw - 48px)',
         }}
       >
-        <div
-          className={`relative bg-bg-secondary dark:bg-bg-secondary-dark border border-accent-500/40 rounded-2xl p-5 shadow-glow before:content-[''] before:absolute before:w-0 before:h-0 before:border-[10px] before:border-transparent after:content-[''] after:absolute after:w-0 after:h-0 after:border-[8px] after:border-transparent ${cardPosition.arrow}`}
-        >
-          <div className="flex items-center justify-between mb-3">
+        <div className="relative bg-white dark:bg-[#111726] border border-indigo-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent-500 to-highlight-400 flex items-center justify-center text-white font-bold text-sm shadow-subtle animate-pop-in">
+              <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                 {step.id}
               </span>
-              <div className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-widest">
+              <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                 Step {currentStep + 1} of {STEPS.length}
               </div>
             </div>
             <button
               onClick={dismiss}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted dark:text-text-muted-dark hover:text-text-primary dark:hover:text-text-primary-dark hover:bg-bg-tertiary dark:hover:bg-bg-tertiary-dark transition-colors"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs font-bold"
               aria-label="Dismiss tour"
             >
               ✕
             </button>
           </div>
 
-          <h3 className="text-lg font-black text-text-primary dark:text-text-primary-dark mb-1.5 leading-tight">
-            {step.title}
-          </h3>
-          <p className="text-sm text-text-secondary dark:text-text-secondary-dark leading-relaxed mb-4">
-            {step.description}
-          </p>
+          <div>
+            <h3 className="text-base font-black text-gray-900 dark:text-white leading-tight">
+              {step.title}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed mt-1.5">
+              {step.description}
+            </p>
+          </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-1">
             <div className="flex gap-1.5">
               {STEPS.map((_, idx) => (
                 <div
@@ -259,30 +271,30 @@ export default function OnboardingTour() {
                   className={[
                     'h-1.5 rounded-full transition-all',
                     idx === currentStep
-                      ? 'w-6 bg-gradient-to-r from-accent-500 to-highlight-400 shadow-subtle'
+                      ? 'w-6 bg-gradient-to-r from-indigo-500 to-cyan-500'
                       : idx < currentStep
-                      ? 'w-2.5 bg-accent-500/60'
-                      : 'w-2.5 bg-text-muted/30 dark:bg-text-muted-dark/30',
+                      ? 'w-2 bg-indigo-500/60'
+                      : 'w-2 bg-gray-200 dark:bg-gray-700',
                   ].join(' ')}
                 />
               ))}
             </div>
             <div className="flex items-center gap-2">
               {currentStep > 0 && (
-                <Button variant="ghost" size="sm" onClick={back}>
+                <Button variant="ghost" size="xs" onClick={back} className="font-semibold text-xs">
                   Back
                 </Button>
               )}
-              <Button size="sm" onClick={next} className="animate-glow-pulse">
-                {currentStep === STEPS.length - 1 ? "Let's go 🚀" : 'Next →'}
+              <Button variant="primary" size="xs" onClick={next} className="font-bold text-xs shadow-sm">
+                {currentStep === STEPS.length - 1 ? 'Got it! 🚀' : 'Next →'}
               </Button>
             </div>
           </div>
           <button
             onClick={dismiss}
-            className="mt-4 w-full text-center text-[11px] text-text-muted dark:text-text-muted-dark hover:text-text-tertiary dark:hover:text-text-tertiary-dark transition-colors py-1 rounded-md hover:bg-bg-tertiary/40 dark:hover:bg-bg-tertiary-dark/40"
+            className="w-full text-center text-[11px] font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-0.5"
           >
-            Skip tour — I know what I'm doing
+            Skip tour
           </button>
         </div>
       </div>

@@ -34,7 +34,7 @@ export const Footer: React.FC = () => {
           </nav>
 
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Complexity • Static Big-O Analyzer
+            © {new Date().getFullYear()} Complexity • Client-Side Big-O & Space Complexity Analyzer
           </p>
         </div>
       </div>

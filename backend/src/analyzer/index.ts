@@ -88,7 +88,7 @@ export function analyzeCode(
         detectedPatterns: [],
         whatWouldChange: [],
         knownLimitations: [],
-        error: 'Please paste some code to analyze',
+        error: 'Please enter some code before starting the analysis.',
         stdlibCalls: [],
         detailed: buildEmptyDetailed(detectedLanguage),
       };
@@ -165,12 +165,12 @@ export function analyzeCode(
     };
 
     if (isPartialAnalysis) {
-      result.error = 'Partial analysis: code appears malformed/incomplete';
+      result.error = 'Some parts of this code appear incomplete. We can still provide a partial analysis, but the result may have lower confidence.';
       result.timeConfidence = Math.max(0, result.timeConfidence - 20);
     }
 
     return result;
-  } catch (e) {
+  } catch {
     return {
       version: '1.3.0',
       detectedLanguage,
@@ -198,7 +198,7 @@ export function analyzeCode(
       detectedPatterns: [],
       whatWouldChange: [],
       knownLimitations: [],
-      error: e instanceof Error ? e.message : 'Unknown error',
+      error: "We couldn't analyze this code. Make sure you've entered a valid code snippet and selected the correct programming language.",
       stdlibCalls: [],
       detailed: buildEmptyDetailed(detectedLanguage),
     };

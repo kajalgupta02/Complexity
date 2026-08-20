@@ -239,7 +239,9 @@ export const Learn: React.FC = () => {
                     </div>
 
                     <Button variant="ghost" size="sm" asChild className="text-xs font-semibold">
-                      <Link to="/analyzer">
+                      <Link
+                        to={`/analyzer?code=${encodeURIComponent(selectedLesson.codeExample.code)}&lang=${selectedLesson.codeExample.language}`}
+                      >
                         <span>⚡ Test in Analyzer →</span>
                       </Link>
                     </Button>
@@ -253,56 +255,103 @@ export const Learn: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Theory Points */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    Core Principles & Derivations
-                  </h3>
-                  <div className="space-y-2.5">
-                    {selectedLesson.theory.map((point, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3.5 rounded-2xl bg-gray-50 dark:bg-[#0c101c] border border-gray-200/80 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 leading-relaxed flex items-start gap-3"
-                      >
-                        <span className="text-indigo-500 font-bold">•</span>
-                        <span>{point}</span>
-                      </div>
-                    ))}
+                {/* 1. What It Means & Real-world Analogy */}
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 space-y-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                      <span>📖</span> 1. What It Means
+                    </h3>
+                    <p className="text-sm text-indigo-950 dark:text-indigo-200 leading-relaxed font-medium">
+                      {selectedLesson.whatItMeans}
+                    </p>
                   </div>
+
+                  {selectedLesson.simpleExample && (
+                    <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 space-y-1">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <span>💡</span> 2. Simple Example / Analogy
+                      </h4>
+                      <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+                        {selectedLesson.simpleExample}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Code Sample */}
+                {/* 3. Code Example & Interactive Demonstration */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                      Algorithmic Demonstration
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <span>💻</span> 3. Code Example
                     </h3>
                     <span className="text-xs font-mono text-gray-400 capitalize">
                       {selectedLesson.codeExample.language}
                     </span>
                   </div>
 
-                  <div className="rounded-2xl bg-gray-900 text-gray-100 p-4 font-mono text-xs overflow-x-auto border border-gray-800">
+                  <div className="rounded-2xl bg-gray-900 text-gray-100 p-4 font-mono text-xs overflow-x-auto border border-gray-800 shadow-inner">
                     <pre className="text-emerald-400 font-mono">
                       {selectedLesson.codeExample.code}
                     </pre>
                   </div>
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-[#0c101c] p-3 rounded-xl border border-gray-200 dark:border-gray-800">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[#0c101c] p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 leading-relaxed">
                     💡 {selectedLesson.codeExample.explanation}
                   </p>
                 </div>
 
+                {/* 4. Why It Has That Complexity */}
+                <div className="p-4 rounded-2xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/30 space-y-1.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400 flex items-center gap-1.5">
+                    <span>📐</span> 4. Why It Has That Complexity
+                  </h3>
+                  <p className="text-xs sm:text-sm text-cyan-950 dark:text-cyan-200 leading-relaxed">
+                    {selectedLesson.whyItHasThatComplexity}
+                  </p>
+                </div>
+
+                {/* 5. Where It Is Commonly Seen */}
+                {selectedLesson.whereCommonlySeen && selectedLesson.whereCommonlySeen.length > 0 && (
+                  <div className="space-y-2.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <span>🌐</span> 5. Where It Is Commonly Seen
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedLesson.whereCommonlySeen.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl bg-gray-50 dark:bg-[#0c101c] border border-gray-200/80 dark:border-gray-800 text-xs text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2"
+                        >
+                          <span className="text-indigo-500 font-bold">▸</span>
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Interview Tip */}
+                {selectedLesson.interviewTip && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white dark:from-emerald-950/20 dark:via-teal-950/10 dark:to-[#111726] border border-emerald-200/60 dark:border-emerald-800/40 space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                      <span>🎯</span> 6. Pro Interview Tip
+                    </h3>
+                    <p className="text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed font-medium">
+                      {selectedLesson.interviewTip}
+                    </p>
+                  </div>
+                )}
+
                 {/* Key Takeaways */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    Key Takeaways
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Summary Checklist
                   </h3>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {selectedLesson.keyTakeaways.map((item, idx) => (
                       <li
                         key={idx}
-                        className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-indigo-950 dark:text-indigo-200 font-medium flex items-center gap-2"
+                        className="p-3 rounded-xl bg-gray-50 dark:bg-[#0c101c] border border-gray-200/80 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2"
                       >
                         <span className="text-emerald-500 font-bold">✓</span>
                         <span>{item}</span>

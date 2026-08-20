@@ -84,6 +84,7 @@ const ToastItem = ({ toast, onRemove }: ToastItemProps) => {
         <p className="text-sm font-medium">{toast.message}</p>
         <button
           onClick={() => onRemove(toast.id)}
+          aria-label="Dismiss message"
           className="text-text-muted dark:text-text-muted-dark hover:text-text-primary dark:hover:text-text-primary-dark transition-colors"
         >
           ×

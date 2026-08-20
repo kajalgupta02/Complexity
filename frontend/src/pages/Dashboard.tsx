@@ -98,15 +98,15 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="w-px h-7 bg-gray-200 dark:bg-gray-800" />
-                <div className="text-center px-3">
-                  <p className="text-[11px] font-bold text-gray-500">Total XP</p>
+                <div className="text-center px-3" title="Earn XP by completing lessons and quizzes.">
+                  <p className="text-[11px] font-bold text-gray-500">Learning XP</p>
                   <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">
                     ⚡ {learningProgress.totalXp}
                   </p>
                 </div>
                 <div className="w-px h-7 bg-gray-200 dark:bg-gray-800" />
-                <div className="text-center px-3">
-                  <p className="text-[11px] font-bold text-gray-500">Streak</p>
+                <div className="text-center px-3" title="Consecutive days you've used the learning features.">
+                  <p className="text-[11px] font-bold text-gray-500">Learning Streak</p>
                   <p className="text-lg font-black text-amber-500">
                     🔥 {learningProgress.streakDays}d
                   </p>
@@ -117,10 +117,10 @@ export const Dashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
               <div className="space-y-1">
                 <h1 className="text-2xl font-black text-gray-900 dark:text-white">
-                  Developer Dashboard & Storage
+                  Developer Dashboard & Local Storage
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  You are currently exploring as a guest. Try demo mode to view pre-saved snippets and learning telemetry.
+                  Your saved snippets and learning progress are stored locally in your browser. You can also load a demo profile to test features.
                 </p>
               </div>
               <Button
@@ -322,14 +322,14 @@ export const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 space-y-3">
-                <p className="text-base font-bold text-gray-700 dark:text-gray-300">
-                  No saved code snippets match your filter.
+                <p className="text-base font-bold text-gray-900 dark:text-white">
+                  No saved snippets yet
                 </p>
-                <p className="text-xs text-gray-500">
-                  Save snippets directly from the live analyzer to build your algorithmic portfolio.
+                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                  Analyze a code snippet and save it to keep it in your personal library for quick reference and comparison.
                 </p>
                 <Button variant="primary" asChild className="mt-2">
-                  <Link to="/analyzer">Go to Live Analyzer</Link>
+                  <Link to="/analyzer">Open Complexity Analyzer</Link>
                 </Button>
               </div>
             )}
@@ -457,10 +457,10 @@ export const Dashboard: React.FC = () => {
           <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 space-y-6 shadow-sm">
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Recent Analysis Logs
+                Analysis History
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Automatically stored history of algorithms analyzed on this machine.
+                Review your previous code complexity analyses.
               </p>
             </div>
 
@@ -509,8 +509,16 @@ export const Dashboard: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500 text-xs">
-                No recent analyses logged yet. Run code in the Live Analyzer to populate this log.
+              <div className="p-10 text-center rounded-2xl bg-gray-50/70 dark:bg-[#0c101c] border border-gray-100 dark:border-gray-800 space-y-3">
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  No analyses yet
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                  Your previous analyses will appear here after you analyze your first code snippet.
+                </p>
+                <Button variant="secondary" size="sm" asChild className="mt-2">
+                  <Link to="/analyzer">Analyze Your First Snippet →</Link>
+                </Button>
               </div>
             )}
           </div>

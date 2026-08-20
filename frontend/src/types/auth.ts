@@ -75,12 +75,17 @@ export interface LearningLesson {
   description: string;
   estimatedMinutes: number;
   xpReward: number;
-  theory: string[];
+  whatItMeans: string;
+  simpleExample?: string;
   codeExample: {
     language: SupportedLanguage;
     code: string;
     explanation: string;
   };
+  whyItHasThatComplexity: string;
+  whereCommonlySeen: string[];
+  interviewTip: string;
+  theory: string[];
   keyTakeaways: string[];
   quiz: QuizQuestion[];
 }

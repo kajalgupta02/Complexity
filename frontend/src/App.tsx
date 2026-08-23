@@ -11,6 +11,11 @@ import Analyzer from '@/pages/Analyzer';
 import Learn from '@/pages/Learn';
 import About from '@/pages/About';
 import Dashboard from '@/pages/Dashboard';
+import Interview from '@/pages/Interview';
+import Share from '@/pages/Share';
+import CheatSheet from '@/pages/CheatSheet';
+import NotFound from '@/pages/NotFound';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -33,13 +38,19 @@ function App() {
           <div className="min-h-screen flex flex-col bg-bg-primary dark:bg-bg-primary-dark text-text-primary dark:text-text-primary-dark">
             <Navbar theme={theme} setTheme={setTheme} />
             <main className="flex-1 w-full">
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/analyzer" element={<Analyzer />} />
-                <Route path="/learn" element={<Learn />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/analyzer" element={<Analyzer />} />
+                  <Route path="/learn" element={<Learn />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/interview" element={<Interview />} />
+                  <Route path="/share" element={<Share />} />
+                  <Route path="/cheatsheet" element={<CheatSheet />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
             </main>
             <Footer />
           </div>

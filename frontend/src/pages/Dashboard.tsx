@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { LEARNING_LESSONS, BADGES } from '@/data/learningCurriculum';
+import LZString from 'lz-string';
+import DailyQuiz from '@/components/DailyQuiz';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +39,14 @@ export const Dashboard: React.FC = () => {
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     addToast('success', 'Code copied to clipboard!');
+  };
+
+  const handleShare = (item: any) => {
+    const data = JSON.stringify({ code: item.code, language: item.language });
+    const encoded = LZString.compressToEncodedURIComponent(data);
+    const url = `${window.location.origin}/share?data=${encoded}`;
+    navigator.clipboard.writeText(url);
+    addToast('success', 'Share link copied to clipboard!');
   };
 
   const handleDelete = (id: string, title: string) => {
@@ -133,6 +143,9 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Daily Quiz Card */}
+        <DailyQuiz />
 
         {/* Dashboard Tabs Header */}
         <div className="flex border-b border-gray-200 dark:border-gray-800">
@@ -302,12 +315,20 @@ export const Dashboard: React.FC = () => {
 
                     {/* Actions */}
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
-                      <button
-                        onClick={() => handleCopyCode(item.code)}
-                        className="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white font-medium"
-                      >
-                        📋 Copy Code
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleCopyCode(item.code)}
+                          className="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white font-medium"
+                        >
+                          📋 Copy Code
+                        </button>
+                        <button
+                          onClick={() => handleShare(item)}
+                          className="text-xs text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium"
+                        >
+                          🔗 Share
+                        </button>
+                      </div>
                       <Button
                         variant="ghost"
                         size="xs"

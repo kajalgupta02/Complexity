@@ -37,6 +37,7 @@ export interface SavedAnalysis {
   tags: string[];
   isFavorite?: boolean;
   notes?: string;
+  linkedProblemId?: string;
 }
 
 export interface AnalysisHistoryItem {
@@ -47,6 +48,7 @@ export interface AnalysisHistoryItem {
   spaceComplexity: string;
   timestamp: string;
   code: string;
+  linkedProblemId?: string;
 }
 
 export interface Badge {

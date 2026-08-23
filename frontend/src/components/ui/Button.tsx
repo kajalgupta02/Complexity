@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { Slot } from '@/lib/Slot';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'warning';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'warning' | 'outline';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   asChild?: boolean;
 }
@@ -44,6 +44,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       warning: [
         'bg-warning-500 text-black',
         'hover:bg-warning-600'
+      ].join(' '),
+      outline: [
+        'bg-transparent text-text-primary dark:text-text-primary-dark',
+        'border-2 border-accent-500/60 text-accent-700 dark:text-accent-300',
+        'hover:bg-accent-500/10 dark:hover:bg-accent-500/15'
       ].join(' '),
     };
 

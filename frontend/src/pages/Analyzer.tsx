@@ -23,11 +23,13 @@ import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAnalyzerWorker } from '@/hooks/useAnalyzerWorker';
+import { ProblemSelector } from '@/components/analyzer/ProblemSelector';
+import type { InterviewProblem } from '@/data/interviewProblems';
 import SampleGallery from '@/components/SampleGallery';
 import OnboardingTour from '@/components/OnboardingTour';
 import type { Sample } from '@/data/samples';
 import {
-  analyzeCode,
   detectLanguage,
   type AnalysisResult,
   type SupportedLanguage,
@@ -420,10 +422,11 @@ export const Analyzer: React.FC = () => {
 
   const [code, setCode] = useState<string>(DEFAULT_SAMPLE_CODE);
   const [language, setLanguage] = useState<Language>('javascript');
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const { analyze: runWorkerAnalysis, isAnalyzing } = useAnalyzerWorker();
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [autoDetected, setAutoDetected] = useState<Language | null>(null);
   const [sampleGalleryOpen, setSampleGalleryOpen] = useState<boolean>(false);
+  const [linkedProblem, setLinkedProblem] = useState<InterviewProblem | null>(null);
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorViewRef = useRef<EditorView | null>(null);
@@ -640,9 +643,8 @@ export const Analyzer: React.FC = () => {
       return;
     }
 
-    setIsAnalyzing(true);
     try {
-      const res = analyzeCode(codeToAnalyze, langToAnalyze);
+      const res = await runWorkerAnalysis(codeToAnalyze, langToAnalyze);
       setResult(res);
 
       // Apply gutter markers + inline underlines for complexity-contributing loops
@@ -660,6 +662,7 @@ export const Analyzer: React.FC = () => {
         timeComplexity: res.timeComplexity,
         spaceComplexity: spaceStr,
         code: codeToAnalyze,
+        linkedProblemId: linkedProblem?.id,
       });
 
       if (res.error) {
@@ -670,14 +673,12 @@ export const Analyzer: React.FC = () => {
       } else {
         addToast('success', `Analysis complete: ${res.timeComplexity} Time Complexity detected.`);
       }
-    } catch {
+    } catch (e) {
       addToast(
         'danger',
-        "We couldn't analyze this code. Make sure you've entered a valid code snippet and selected the correct programming language."
+        e instanceof Error ? e.message : "We couldn't analyze this code. Make sure you've entered a valid code snippet and selected the correct programming language."
       );
       applyLoopMarkers(editorViewRef.current, []);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -815,6 +816,9 @@ export const Analyzer: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            {/* Link Problem */}
+            <ProblemSelector selectedProblemId={linkedProblem?.id || null} onSelect={setLinkedProblem} />
 
             {/* Browse Examples Button */}
             <Button
@@ -1038,6 +1042,30 @@ export const Analyzer: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* INTERVIEW PROBLEM ANALYSIS */}
+                {linkedProblem && (
+                  <div className={`px-4 py-4 mb-4 rounded-2xl border ${result.timeComplexity === linkedProblem.expectedTime ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30' : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30'}`}>
+                    <h2 className="text-sm font-bold flex items-center gap-2 mb-2">
+                      {result.timeComplexity === linkedProblem.expectedTime ? (
+                        <><span className="text-emerald-500">✓</span> <span className="text-emerald-900 dark:text-emerald-100">Optimal Solution</span></>
+                      ) : (
+                        <><span className="text-amber-500">⚠</span> <span className="text-amber-900 dark:text-amber-100">Suboptimal Complexity</span></>
+                      )}
+                    </h2>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                      {result.timeComplexity === linkedProblem.expectedTime
+                        ? `Great job! Your solution matches the expected optimal time complexity of ${linkedProblem.expectedTime} for ${linkedProblem.title}.`
+                        : `Your solution is estimated at ${result.timeComplexity}, while the expected optimal approach is ${linkedProblem.expectedTime}.`}
+                    </p>
+                    {linkedProblem.tips && linkedProblem.tips.length > 0 && (
+                      <div className="bg-white/60 dark:bg-black/20 rounded-xl p-3 text-xs text-gray-600 dark:text-gray-400">
+                        <span className="font-semibold block mb-1">Interview Tip:</span>
+                        {linkedProblem.tips[0]}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* CONFIDENCE EXPLANATION BANNER */}
                 <div className="px-4 py-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 text-xs text-indigo-950 dark:text-indigo-200 space-y-1">

@@ -35,9 +35,15 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <BrowserRouter>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-indigo-600 focus:text-white focus:font-bold focus:rounded-2xl focus:shadow-xl focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Skip to main content
+          </a>
           <div className="min-h-screen flex flex-col bg-bg-primary dark:bg-bg-primary-dark text-text-primary dark:text-text-primary-dark">
             <Navbar theme={theme} setTheme={setTheme} />
-            <main className="flex-1 w-full">
+            <main id="main-content" tabIndex={-1} className="flex-1 w-full focus:outline-none">
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Landing />} />

@@ -5,6 +5,7 @@ import { LEARNING_LESSONS, BADGES } from '@/data/learningCurriculum';
 import type { LearningLesson } from '@/types/auth';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { SEO } from '@/components/SEO';
 
 export const Learn: React.FC = () => {
   const { learningProgress, completeLesson, isLessonCompleted, earnedBadges } = useAuth();
@@ -68,6 +69,11 @@ export const Learn: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10">
+      <SEO
+        title="Time & Space Complexity Masterclass & Lessons"
+        description="Interactive lessons with Big-O math derivations, code examples, quizzes, and gamified XP rewards to master algorithmic asymptotic analysis."
+        canonical="/learn"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
         {/* Header & Progress Card */}
         <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { SEO } from '@/components/SEO';
 
 const ALL_LANGS = [
   { label: 'JavaScript', icon: '🟨' },
@@ -74,6 +75,25 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors selection:bg-indigo-500 selection:text-white">
+      <SEO
+        title="Complexity — The Interview Candidate's Big-O Sidekick"
+        description="Instant Big-O complexity analyzer for 13 programming languages. Track Blind 75 and NeetCode 150 solutions, study DSA cheatsheets, and master algorithmic performance."
+        canonical="/"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'Complexity',
+          applicationCategory: 'DeveloperApplication',
+          operatingSystem: 'Any',
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+          description:
+            'Static AST Big-O time and space complexity analyzer across 13 programming languages for technical coding interviews.',
+        }}
+      />
       {/* HERO SECTION */}
       <div className="relative isolate overflow-hidden">
         <div className="absolute -top-40 left-1/2 -z-10 -translate-x-1/2 blur-3xl opacity-30 dark:opacity-25 pointer-events-none">

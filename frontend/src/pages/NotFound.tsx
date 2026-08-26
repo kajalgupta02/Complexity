@@ -1,11 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { SEO } from '@/components/SEO';
 
 export const NotFound: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] dark:bg-[#090d16] p-6 text-center text-gray-900 dark:text-gray-100">
+      <SEO
+        title="404 — Page Not Found"
+        description="The requested page was not found on Complexity."
+      />
       <div className="max-w-md space-y-6">
         <div className="text-8xl mb-4 font-black text-indigo-500">404</div>
         <h1 className="text-3xl font-black">Page not found.</h1>

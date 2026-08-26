@@ -210,7 +210,9 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/80"
-              aria-label="Toggle menu"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
@@ -225,7 +227,12 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0d121f] px-4 py-4 space-y-2">
+          <div
+            id="mobile-navigation-drawer"
+            role="navigation"
+            aria-label="Mobile Navigation"
+            className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0d121f] px-4 py-4 space-y-2"
+          >
             {navLinks.map((link) => (
               <Link
                 key={link.path}

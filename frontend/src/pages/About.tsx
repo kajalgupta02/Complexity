@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
+import { SEO } from '@/components/SEO';
 
 export const About: React.FC = () => {
   const pipelineSteps = [
@@ -62,6 +63,11 @@ export const About: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors">
+      <SEO
+        title="About the Static Analysis Engine & Big-O Methodology"
+        description="Learn how Complexity's static AST analysis pipeline calculates Big-O time and space bounds across 13 programming languages without code execution."
+        canonical="/about"
+      />
       {/* HERO SECTION */}
       <section className="pt-16 pb-16 border-b border-gray-200 dark:border-gray-800/80 bg-white dark:bg-[#0d121f]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">

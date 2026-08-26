@@ -4,6 +4,7 @@ import LZString from 'lz-string';
 import { Button } from '@/components/ui/Button';
 import { useAnalyzerWorker } from '@/hooks/useAnalyzerWorker';
 import type { SupportedLanguage } from '@/lib/analyzer';
+import { SEO } from '@/components/SEO';
 
 export const Share: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -50,6 +51,11 @@ export const Share: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] py-10 px-4 sm:px-6 text-gray-900 dark:text-gray-100">
+      <SEO
+        title="Shared Complexity Analysis Snippet"
+        description="View shared source code snippet and its Big-O time and space complexity results."
+        canonical="/share"
+      />
       <div className="max-w-4xl mx-auto space-y-6">
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#111726] p-6 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-800">
           <div>

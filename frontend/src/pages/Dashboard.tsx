@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast';
 import { LEARNING_LESSONS, BADGES } from '@/data/learningCurriculum';
 import LZString from 'lz-string';
 import DailyQuiz from '@/components/DailyQuiz';
+import { SEO } from '@/components/SEO';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -70,6 +71,11 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10">
+      <SEO
+        title="Dashboard & Saved Snippets"
+        description="Manage your saved code snippets, track learning progress, view historical analyses, and test your DSA skills with the Daily Quiz."
+        canonical="/dashboard"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
         {/* User Profile Card */}
         <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">

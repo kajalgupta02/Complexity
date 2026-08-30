@@ -550,9 +550,5 @@ export const COMPLEXITIES = [
 ];
 
 export const LANGUAGES = [
-  { id: 'all', label: 'All' },
-  { id: 'javascript', label: 'JavaScript' },
-  { id: 'python', label: 'Python' },
   { id: 'java', label: 'Java' },
-  { id: 'cpp', label: 'C++' },
 ];

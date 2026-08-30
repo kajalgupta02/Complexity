@@ -12,7 +12,7 @@ interface SampleGalleryProps {
 export default function SampleGallery({ open, onClose, onSelect }: SampleGalleryProps) {
   const [search, setSearch] = useState('');
   const [complexityFilter, setComplexityFilter] = useState('All');
-  const [languageFilter, setLanguageFilter] = useState('all');
+  const [languageFilter, setLanguageFilter] = useState('java');
 
   const filteredSamples = useMemo(() => {
     return SAMPLES.filter((sample) => {
@@ -90,7 +90,7 @@ export default function SampleGallery({ open, onClose, onSelect }: SampleGallery
             {/* Language Filter */}
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold mr-1">
-                Language:
+                Examples use:
               </span>
               {LANGUAGES.map((lang) => (
                 <button

@@ -192,8 +192,8 @@ export const Analyzer: React.FC = () => {
   const { saveAnalysis, recordAnalysisHistory } = useAuth();
   const { analyze, isAnalyzing } = useAnalyzerWorker();
 
-  const [language, setLanguage] = useState<SupportedLanguage>('javascript');
-  const [code, setCode] = useState<string>(STARTER_CODE.javascript);
+  const [language, setLanguage] = useState<SupportedLanguage>('java');
+  const [code, setCode] = useState<string>(STARTER_CODE.java);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<InterviewProblem | null>(null);
 

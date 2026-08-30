@@ -59,16 +59,8 @@ export const LEARNING_LESSONS: LearningLesson[] = [
     whatItMeans: 'Big-O notation is a standardized way to describe how the execution time or memory of a program scales as the input size n becomes very large.',
     simpleExample: 'If a rocket travels to Mars, the weight of the astronaut’s keychain doesn’t matter. In Big-O, we only care about the dominant factor that drives the workload.',
     codeExample: {
-      language: 'javascript',
-      code: `// T(n) = 3n + 5 operations -> O(n)
-function findTarget(arr, target) {
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] === target) {
-      return i; // Found target
-    }
-  }
-  return -1; // Not found
-}`,
+      language: 'java',
+      code: `public class Search { static int findTarget(int[] values, int target) { for (int i = 0; i < values.length; i++) if (values[i] == target) return i; return -1; } }`,
       explanation: 'Even though there are constant setup steps, the loop runs up to n times. For large inputs, n dominates everything else.',
     },
     whyItHasThatComplexity: 'Because constants and lower-order terms (like +5 or a coefficient of 3) become negligible when n is in the millions. We simplify 3n + 5 to O(n).',
@@ -118,16 +110,9 @@ function findTarget(arr, target) {
     whatItMeans: 'The execution time does not depend on the input size. Whether your dataset contains 10 items or 10,000,000 items, the operation takes the exact same amount of time.',
     simpleExample: 'Looking at the page number written in the corner of an open book. It takes one glance regardless of whether the book has 50 pages or 1,000 pages.',
     codeExample: {
-      language: 'javascript',
-      code: `// O(1) Time | O(1) Space
-function getFirstElement(arr) {
-  return arr[0]; // Instant index access
-}
-
-// O(1) Time Average
-function isUserLoggedIn(userMap, userId) {
-  return userMap.has(userId); // Hash table lookup
-}`,
+      language: 'java',
+      code: `import java.util.Map;
+public class Lookups { static int getFirstElement(int[] values) { return values[0]; } static boolean isUserLoggedIn(Map<Integer, Boolean> users, int id) { return users.containsKey(id); } }`,
       explanation: 'Accessing arr[0] or looking up a key in a Map jumps directly to the memory address in a single step without looping through other elements.',
     },
     whyItHasThatComplexity: 'There are no loops or recursive calls that grow with n. The computer computes the target memory address directly in one calculation.',
@@ -176,20 +161,8 @@ function isUserLoggedIn(userMap, userId) {
     whatItMeans: 'The number of operations grows by only one extra step every time the input size doubles. It is extremely fast and scalable for massive datasets.',
     simpleExample: 'Guessing a number between 1 and 100 with "higher/lower" hints. By guessing 50 first, you immediately eliminate 50 wrong numbers in a single question.',
     codeExample: {
-      language: 'javascript',
-      code: `// O(log n) Time | O(1) Space
-function binarySearch(sortedArr, target) {
-  let low = 0;
-  let high = sortedArr.length - 1;
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    if (sortedArr[mid] === target) return mid;
-    if (sortedArr[mid] < target) low = mid + 1; // Discard left half
-    else high = mid - 1; // Discard right half
-  }
-  return -1;
-}`,
+      language: 'java',
+      code: `public class BinarySearch { static int search(int[] values, int target) { int low = 0, high = values.length - 1; while (low <= high) { int mid = low + (high - low) / 2; if (values[mid] == target) return mid; if (values[mid] < target) low = mid + 1; else high = mid - 1; } return -1; } }`,
       explanation: 'At every iteration of the loop, the remaining search space is divided by 2. For an array of 1,000,000 items, it takes at most ~20 comparisons.',
     },
     whyItHasThatComplexity: 'Because halving the input repeatedly until reaching 1 takes log₂(n) steps. For example, 16 → 8 → 4 → 2 → 1 is 4 steps (since 2⁴ = 16).',
@@ -232,22 +205,8 @@ function binarySearch(sortedArr, target) {
     whatItMeans: 'The amount of work grows in direct proportion to the size of the input. If the input size doubles, the execution time roughly doubles.',
     simpleExample: 'Reading a book page by page: if the book has 300 pages, you turn the page 300 times.',
     codeExample: {
-      language: 'javascript',
-      code: `// O(n) Time | O(1) Space
-function printAllElements(arr) {
-  for (let i = 0; i < arr.length; i++) {
-    console.log(arr[i]);
-  }
-}
-
-// O(n) Time - Finding Maximum
-function findMax(arr) {
-  let max = arr[0];
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] > max) max = arr[i];
-  }
-  return max;
-}`,
+      language: 'java',
+      code: `public class LinearPass { static int findMax(int[] values) { int max = values[0]; for (int value : values) if (value > max) max = value; return max; } }`,
       explanation: 'The loop runs approximately n times, visiting each element once in sequence, so the time complexity is O(n).',
     },
     whyItHasThatComplexity: 'Because there is a single loop that iterates once for every item in the input array of length n.',
@@ -291,15 +250,9 @@ function findMax(arr) {
     whatItMeans: 'The algorithm breaks the problem down into log n levels of recursion, and performs O(n) work across each level. It is slightly slower than linear O(n), but vastly faster than quadratic O(n²).',
     simpleExample: 'Organizing a deck of cards by repeatedly splitting the deck in half, sorting the small piles, and merging them back together.',
     codeExample: {
-      language: 'javascript',
-      code: `// O(n log n) Time | O(n) Space
-function mergeSort(arr) {
-  if (arr.length <= 1) return arr;
-  const mid = Math.floor(arr.length / 2);
-  const left = mergeSort(arr.slice(0, mid)); // log n levels
-  const right = mergeSort(arr.slice(mid));
-  return merge(left, right); // O(n) work per level
-}`,
+      language: 'java',
+      code: `import java.util.Arrays;
+public class MergeSort { static void sort(int[] values) { if (values.length < 2) return; int mid = values.length / 2; int[] left = Arrays.copyOfRange(values, 0, mid); int[] right = Arrays.copyOfRange(values, mid, values.length); sort(left); sort(right); merge(values, left, right); } static void merge(int[] out, int[] left, int[] right) { int i = 0, j = 0, k = 0; while (i < left.length && j < right.length) out[k++] = left[i] <= right[j] ? left[i++] : right[j++]; while (i < left.length) out[k++] = left[i++]; while (j < right.length) out[k++] = right[j++]; } }`,
       explanation: 'The array is split in half across log₂(n) levels. At every level, merging the elements back together takes O(n) comparisons. Total time = n × log n.',
     },
     whyItHasThatComplexity: 'Because there are log n levels of recursion (due to halving), and at each level, a total of n items are inspected and merged.',
@@ -347,26 +300,10 @@ function mergeSort(arr) {
     whatItMeans: 'The execution time grows proportionally to the square of the input size. If the input size doubles, the work increases by 4 times (2² = 4).',
     simpleExample: 'Shaking hands with everyone in a room of n people. If there are 10 people, there are 45 handshakes. If there are 100 people, there are 4,950 handshakes!',
     codeExample: {
-      language: 'javascript',
-      code: `// SLOW: O(n²) Time - Two Nested Loops
-function hasDuplicateNaive(arr) {
-  for (let i = 0; i < arr.length; i++) {
-    for (let j = i + 1; j < arr.length; j++) {
-      if (arr[i] === arr[j]) return true; // n × n checks
-    }
-  }
-  return false;
-}
-
-// OPTIMIZED: O(n) Time | O(n) Space - Hash Set
-function hasDuplicateOptimized(arr) {
-  const seen = new Set();
-  for (const item of arr) {
-    if (seen.has(item)) return true; // O(1) check
-    seen.add(item);
-  }
-  return false;
-}`,
+      language: 'java',
+      code: `import java.util.HashSet;
+import java.util.Set;
+public class Duplicates { static boolean hasDuplicateNaive(int[] values) { for (int i = 0; i < values.length; i++) for (int j = i + 1; j < values.length; j++) if (values[i] == values[j]) return true; return false; } static boolean hasDuplicateOptimized(int[] values) { Set<Integer> seen = new HashSet<>(); for (int value : values) if (!seen.add(value)) return true; return false; } }`,
       explanation: 'The naive version has an inner loop that runs for each iteration of the outer loop, resulting in approximately n × n operations. The optimized version uses a Set to finish in O(n) time.',
     },
     whyItHasThatComplexity: 'Your code contains two nested loops. The inner loop executes n times for each of the n iterations of the outer loop, yielding n × n = n² operations.',
@@ -414,19 +351,8 @@ function hasDuplicateOptimized(arr) {
     whatItMeans: 'Space complexity describes how much additional memory (RAM) an algorithm allocates as the input size n increases.',
     simpleExample: 'Making a photocopy of a 500-page book requires 500 blank sheets of paper (O(n) extra space). Reading the book with a bookmark requires just 1 bookmark (O(1) extra space).',
     codeExample: {
-      language: 'javascript',
-      code: `// O(n) Auxiliary Space on Call Stack
-function recursiveSum(n) {
-  if (n <= 1) return 1;
-  return n + recursiveSum(n - 1); // n recursive stack frames
-}
-
-// O(1) Auxiliary Space - In-place accumulator
-function iterativeSum(n) {
-  let total = 0; // Only 1 variable allocated
-  for (let i = 1; i <= n; i++) total += i;
-  return total;
-}`,
+      language: 'java',
+      code: `public class Sum { static int recursiveSum(int n) { if (n <= 1) return n; return n + recursiveSum(n - 1); } static int iterativeSum(int n) { int total = 0; for (int i = 1; i <= n; i++) total += i; return total; } }`,
       explanation: 'The recursive function creates n call stack frames in memory before returning, consuming O(n) space. The iterative function uses a single variable in O(1) constant space.',
     },
     whyItHasThatComplexity: 'Because each recursive function call allocates a new stack frame containing local variables and return addresses until the base case is reached.',

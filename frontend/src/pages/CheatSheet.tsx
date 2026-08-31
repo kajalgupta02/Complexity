@@ -72,6 +72,65 @@ const BIG_O_RANKS = [
   { notation: 'O(n!)', label: 'Factorial', color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/30', status: 'Disaster', desc: 'Permutations, brute-force Traveling Salesperson.' },
 ];
 
+const operationTone = (value: string) => {
+  if (value === 'N/A') return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+  if (value.includes('O(1)')) return 'bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300';
+  if (value.includes('log')) return 'bg-cyan-500/10 text-cyan-700 ring-1 ring-cyan-500/20 dark:text-cyan-300';
+  if (value.includes('O(n)')) return 'bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300';
+  return 'bg-rose-500/10 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300';
+};
+
+const ComplexityChart: React.FC = () => (
+  <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#111726]">
+    <div className="flex flex-col gap-3 border-b border-gray-100 p-6 dark:border-gray-800 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 className="text-lg font-black text-gray-900 dark:text-white">How time complexity grows</h2>
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">The same algorithm can feel very different as the input grows.</p>
+      </div>
+      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Lower curves scale better</span>
+    </div>
+    <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-center">
+      <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-indigo-50/60 p-3 dark:border-gray-800 dark:from-[#0c101c] dark:to-indigo-950/20">
+        <svg viewBox="0 0 640 330" role="img" aria-label="Chart comparing common time complexity growth rates" className="h-auto w-full">
+          <defs>
+            <linearGradient id="chartFade" x1="0" x2="1">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.14" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[60, 110, 160, 210, 260].map((y) => <line key={y} x1="55" x2="610" y1={y} y2={y} stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="4 6" />)}
+          <line x1="55" x2="610" y1="285" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
+          <line x1="55" x2="55" y1="25" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
+          <path d="M55 262 C200 261 400 261 610 260" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
+          <path d="M55 278 C160 269 325 258 610 232" fill="none" stroke="#06b6d4" strokeWidth="4" strokeLinecap="round" />
+          <path d="M55 278 L610 105" fill="none" stroke="#6366f1" strokeWidth="4" strokeLinecap="round" />
+          <path d="M55 282 C185 273 330 218 610 48" fill="none" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
+          <path d="M55 284 C205 278 370 180 500 40" fill="none" stroke="#f43f5e" strokeWidth="4" strokeLinecap="round" />
+          <path d="M55 285 C130 280 205 235 265 42" fill="none" stroke="#a855f7" strokeWidth="4" strokeLinecap="round" />
+          <text x="55" y="312" className="fill-slate-500 text-[13px]">small input</text>
+          <text x="525" y="312" className="fill-slate-500 text-[13px]">large input</text>
+          <text x="10" y="35" className="fill-slate-500 text-[13px]">work</text>
+        </svg>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        {[
+          ['O(1)', 'Constant', 'bg-emerald-500'],
+          ['O(log n)', 'Logarithmic', 'bg-cyan-500'],
+          ['O(n)', 'Linear', 'bg-indigo-500'],
+          ['O(n log n)', 'Linearithmic', 'bg-amber-500'],
+          ['O(n²)', 'Quadratic', 'bg-rose-500'],
+          ['O(2ⁿ)', 'Exponential', 'bg-purple-500'],
+        ].map(([notation, label, color]) => (
+          <div key={notation} className="flex items-center gap-2 rounded-xl bg-gray-50 px-2.5 py-2 dark:bg-[#0c101c]">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${color}`} />
+            <div><p className="font-mono font-bold text-gray-900 dark:text-white">{notation}</p><p className="text-[10px] text-gray-500 dark:text-gray-400">{label}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 export const CheatSheet: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'DataStructures' | 'Sorting' | 'Searching' | 'Graph'>('All');
@@ -163,6 +222,8 @@ export const CheatSheet: React.FC = () => {
           </div>
         </div>
 
+        <ComplexityChart />
+
         {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
           {[
@@ -188,14 +249,15 @@ export const CheatSheet: React.FC = () => {
 
         {/* 2. Data Structures Table */}
         {filteredDS.length > 0 && (
-          <div className="bg-white dark:bg-[#111726] rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden space-y-2">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-[#111726] rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/70 via-white to-cyan-50/60 dark:from-indigo-950/20 dark:via-[#111726] dark:to-cyan-950/10">
               <div>
-                <h2 className="text-lg font-black text-gray-900 dark:text-white">
+                <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-sm text-white">▦</span>
                   Data Structure Operations
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Average and worst-case time for Access, Search, Insertion, and Deletion.
+                  Compare the most common operations at a glance. Green is fastest; warmer colors grow more quickly.
                 </p>
               </div>
               <Badge variant="primary" size="sm">
@@ -204,7 +266,7 @@ export const CheatSheet: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
+              <table className="w-full min-w-[980px] text-left text-sm whitespace-nowrap">
                 <thead className="bg-gray-50/80 dark:bg-[#0c101c]/80 text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold border-b border-gray-100 dark:border-gray-800">
                   <tr>
                     <th className="px-6 py-3.5">Data Structure</th>
@@ -219,15 +281,15 @@ export const CheatSheet: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80 font-mono text-xs">
                   {filteredDS.map((row, i) => (
-                    <tr key={i} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="px-6 py-4 font-bold font-sans text-gray-900 dark:text-white">{row.name}</td>
-                      <td className="px-6 py-4 font-sans text-gray-500 dark:text-gray-400">{row.category}</td>
-                      <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 font-bold">{row.access}</td>
-                      <td className="px-6 py-4 text-amber-600 dark:text-amber-400 font-bold">{row.search}</td>
-                      <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-bold">{row.insert}</td>
-                      <td className="px-6 py-4 text-red-600 dark:text-red-400 font-bold">{row.delete}</td>
-                      <td className="px-6 py-4 text-cyan-600 dark:text-cyan-400 font-bold">{row.space}</td>
-                      <td className="px-6 py-4 font-sans text-gray-500 dark:text-gray-400 text-[11px]">{row.notes}</td>
+                    <tr key={i} className="group transition-colors odd:bg-white even:bg-slate-50/60 hover:bg-indigo-50/70 dark:odd:bg-[#111726] dark:even:bg-[#0c101c]/50 dark:hover:bg-indigo-500/10">
+                      <td className="px-6 py-4 font-sans font-bold text-gray-900 dark:text-white">{row.name}</td>
+                      <td className="px-6 py-4 font-sans"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{row.category}</span></td>
+                      <td className="px-6 py-4"><span className={`inline-flex rounded-lg px-2.5 py-1 font-bold ${operationTone(row.access)}`}>{row.access}</span></td>
+                      <td className="px-6 py-4"><span className={`inline-flex rounded-lg px-2.5 py-1 font-bold ${operationTone(row.search)}`}>{row.search}</span></td>
+                      <td className="px-6 py-4"><span className={`inline-flex rounded-lg px-2.5 py-1 font-bold ${operationTone(row.insert)}`}>{row.insert}</span></td>
+                      <td className="px-6 py-4"><span className={`inline-flex rounded-lg px-2.5 py-1 font-bold ${operationTone(row.delete)}`}>{row.delete}</span></td>
+                      <td className="px-6 py-4"><span className={`inline-flex rounded-lg px-2.5 py-1 font-bold ${operationTone(row.space)}`}>{row.space}</span></td>
+                      <td className="px-6 py-4 font-sans text-[11px] text-gray-500 dark:text-gray-400">{row.notes}</td>
                     </tr>
                   ))}
                 </tbody>

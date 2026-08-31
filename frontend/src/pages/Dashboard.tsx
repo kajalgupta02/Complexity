@@ -25,8 +25,8 @@ export const Dashboard: React.FC = () => {
   } = useAuth();
 
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'saved' | 'mastery' | 'history'>(
-    initialTab === 'history' ? 'history' : initialTab === 'mastery' ? 'mastery' : 'saved'
+  const [activeTab, setActiveTab] = useState<'saved' | 'history'>(
+    initialTab === 'history' ? 'history' : 'saved'
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [langFilter, setLangFilter] = useState('All');
@@ -105,29 +105,6 @@ export const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Badges / Stats counter */}
-              <div className="flex items-center gap-3 bg-gray-50 dark:bg-[#0c101c] p-3 rounded-2xl border border-gray-200 dark:border-gray-800">
-                <div className="text-center px-3">
-                  <p className="text-[11px] font-bold text-gray-500">Level</p>
-                  <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-                    Lvl {user.level}
-                  </p>
-                </div>
-                <div className="w-px h-7 bg-gray-200 dark:bg-gray-800" />
-                <div className="text-center px-3" title="Earn XP by completing lessons and quizzes.">
-                  <p className="text-[11px] font-bold text-gray-500">Learning XP</p>
-                  <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">
-                    ⚡ {learningProgress.totalXp}
-                  </p>
-                </div>
-                <div className="w-px h-7 bg-gray-200 dark:bg-gray-800" />
-                <div className="text-center px-3" title="Consecutive days you've used the learning features.">
-                  <p className="text-[11px] font-bold text-gray-500">Learning Streak</p>
-                  <p className="text-lg font-black text-amber-500">
-                    🔥 {learningProgress.streakDays}d
-                  </p>
-                </div>
-              </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
@@ -166,20 +143,6 @@ export const Dashboard: React.FC = () => {
             <span>📁 Saved Code Snippets</span>
             <span className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               {savedAnalyses.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('mastery')}
-            className={`pb-3 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'mastery'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            <span>🏆 Learning Mastery & Badges</span>
-            <span className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-              {learningProgress.earnedBadgeIds.length}
             </span>
           </button>
 
@@ -364,7 +327,7 @@ export const Dashboard: React.FC = () => {
         )}
 
         {/* TAB 2: LEARNING MASTERY & BADGES */}
-        {activeTab === 'mastery' && (
+        {false && (
           <div className="space-y-8">
             {/* Badges Grid */}
             <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 space-y-6">

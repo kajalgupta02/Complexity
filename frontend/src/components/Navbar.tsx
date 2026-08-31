@@ -20,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Analyzer', path: '/analyzer' },
-    { name: 'Interview', path: '/interview' },
     { name: 'Learn', path: '/learn' },
     { name: 'Cheat Sheet', path: '/cheatsheet' },
     { name: 'About', path: '/about' },

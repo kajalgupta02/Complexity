@@ -11,7 +11,6 @@ import Analyzer from '@/pages/Analyzer';
 import Learn from '@/pages/Learn';
 import About from '@/pages/About';
 import Dashboard from '@/pages/Dashboard';
-import Interview from '@/pages/Interview';
 import Share from '@/pages/Share';
 import CheatSheet from '@/pages/CheatSheet';
 import NotFound from '@/pages/NotFound';
@@ -51,7 +50,6 @@ function App() {
                   <Route path="/learn" element={<Learn />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/interview" element={<Interview />} />
                   <Route path="/share" element={<Share />} />
                   <Route path="/cheatsheet" element={<CheatSheet />} />
                   <Route path="*" element={<NotFound />} />

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { LEARNING_LESSONS, BADGES } from '@/data/learningCurriculum';
+import { LEARNING_LESSONS } from '@/data/learningCurriculum';
 import type { LearningLesson } from '@/types/auth';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { SEO } from '@/components/SEO';
 
 export const Learn: React.FC = () => {
-  const { learningProgress, completeLesson, isLessonCompleted, earnedBadges } = useAuth();
   const { addToast } = useToast();
   const [selectedLesson, setSelectedLesson] = useState<LearningLesson | null>(LEARNING_LESSONS[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -22,9 +20,6 @@ export const Learn: React.FC = () => {
   const filteredLessons = selectedCategory === 'All'
     ? LEARNING_LESSONS
     : LEARNING_LESSONS.filter((l) => l.category === selectedCategory);
-
-  const completedCount = learningProgress.completedLessonIds.length;
-  const progressPercent = Math.round((completedCount / LEARNING_LESSONS.length) * 100);
 
   const handleSelectLesson = (lesson: LearningLesson) => {
     setSelectedLesson(lesson);
@@ -60,8 +55,7 @@ export const Learn: React.FC = () => {
     const scorePercent = Math.round((correctCount / selectedLesson.quiz.length) * 100);
 
     if (scorePercent >= 70) {
-      completeLesson(selectedLesson.id, scorePercent, selectedLesson.xpReward);
-      addToast('success', `🎉 Awesome! You scored ${scorePercent}% and earned +${selectedLesson.xpReward} XP!`);
+      addToast('success', `Great work — you scored ${scorePercent}%.`);
     } else {
       addToast('warning', `You scored ${scorePercent}%. Review the theory and try again!`);
     }
@@ -70,68 +64,36 @@ export const Learn: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10">
       <SEO
-        title="Time & Space Complexity Masterclass & Lessons"
-        description="Interactive lessons with Big-O math derivations, code examples, quizzes, and gamified XP rewards to master algorithmic asymptotic analysis."
+        title="Learn Time & Space Complexity"
+        description="Clear, practical guides to Big-O notation with examples, explanations, and self-check questions."
         canonical="/learn"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10">
-        {/* Header & Progress Card */}
+        {/* Header */}
         <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold">
-                <span>🎓 Interactive Mastery Academy</span>
+                <span>Big-O learning guide</span>
               </div>
               <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
-                Time & Space Complexity Masterclass
+                Learn complexity, one idea at a time
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                Step-by-step interactive lessons with code samples, mathematical derivations, and knowledge quizzes to master algorithmic performance.
+                Choose a topic, read the plain-English explanation, study the example, and use the self-check to reinforce it.
               </p>
             </div>
 
-            {/* Stats widget */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 bg-gray-50 dark:bg-[#090d16] p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
-              <div className="text-center px-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total XP</p>
-                <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">
-                  ⚡ {learningProgress.totalXp}
-                </p>
-              </div>
-
-              <div className="w-px h-8 bg-gray-200 dark:bg-gray-800 hidden sm:block" />
-
-              <div className="text-center px-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Completed</p>
-                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                  {completedCount}/{LEARNING_LESSONS.length}
-                </p>
-              </div>
-
-              <div className="w-px h-8 bg-gray-200 dark:bg-gray-800 hidden sm:block" />
-
-              <div className="text-center px-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Streak</p>
-                <p className="text-xl font-black text-amber-500">
-                  🔥 {learningProgress.streakDays}d
-                </p>
-              </div>
+            <div className="rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 p-5">
+              <h2 className="text-sm font-bold text-indigo-950 dark:text-indigo-100">A simple way to use this page</h2>
+              <ol className="mt-3 space-y-2 text-xs leading-relaxed text-indigo-900 dark:text-indigo-200 list-decimal list-inside">
+                <li>Start with Fundamentals if Big-O is new to you.</li>
+                <li>Match the explanation to the code example.</li>
+                <li>Try the self-check, then test the code in the analyzer.</li>
+              </ol>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800/80">
-            <div className="flex items-center justify-between text-xs font-semibold mb-2">
-              <span className="text-gray-600 dark:text-gray-400">Course Completion</span>
-              <span className="text-indigo-600 dark:text-indigo-400">{progressPercent}%</span>
-            </div>
-            <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Main Content Layout: Left Sidebar Lessons List + Right Lesson Detail */}
@@ -159,7 +121,6 @@ export const Learn: React.FC = () => {
             <div className="space-y-2.5">
               {filteredLessons.map((lesson) => {
                 const isSelected = selectedLesson?.id === lesson.id;
-                const isCompleted = isLessonCompleted(lesson.id);
                 return (
                   <button
                     key={lesson.id}
@@ -174,16 +135,9 @@ export const Learn: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md">
                         {lesson.complexity}
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        {isCompleted && (
-                          <span className="text-xs text-emerald-500 font-bold flex items-center gap-0.5">
-                            ✓ Done
-                          </span>
-                        )}
-                        <span className="text-[11px] text-gray-400 font-medium">
-                          +{lesson.xpReward} XP
-                        </span>
-                      </div>
+                      <span className="text-[11px] text-gray-400 font-medium">
+                        {lesson.estimatedMinutes} min
+                      </span>
                     </div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-snug">
                       {lesson.title}
@@ -196,33 +150,6 @@ export const Learn: React.FC = () => {
               })}
             </div>
 
-            {/* Earned Badges Section */}
-            <div className="rounded-2xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-5 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Mastery Badges ({earnedBadges.length}/{BADGES.length})
-              </h3>
-              <div className="grid grid-cols-4 gap-2">
-                {BADGES.map((b) => {
-                  const unlocked = learningProgress.earnedBadgeIds.includes(b.id);
-                  return (
-                    <div
-                      key={b.id}
-                      title={`${b.name}: ${b.description}`}
-                      className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                        unlocked
-                          ? 'border-indigo-500/40 bg-indigo-500/10 shadow-sm'
-                          : 'border-gray-200 dark:border-gray-800/80 opacity-40 grayscale'
-                      }`}
-                    >
-                      <span className="text-2xl">{b.icon}</span>
-                      <span className="text-[9px] font-bold mt-1 text-gray-700 dark:text-gray-300 truncate w-full">
-                        {b.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
 
           {/* Right Lesson Detail Column */}
@@ -316,11 +243,11 @@ export const Learn: React.FC = () => {
                   </p>
                 </div>
 
-                {/* 5. Where It Is Commonly Seen */}
+                {/* Where it is commonly seen */}
                 {selectedLesson.whereCommonlySeen && selectedLesson.whereCommonlySeen.length > 0 && (
                   <div className="space-y-2.5">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                      <span>🌐</span> 5. Where It Is Commonly Seen
+                      <span>🌐</span> Where You Will See It
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {selectedLesson.whereCommonlySeen.map((item, idx) => (
@@ -336,11 +263,11 @@ export const Learn: React.FC = () => {
                   </div>
                 )}
 
-                {/* 6. Interview Tip */}
+                {/* Practical tip */}
                 {selectedLesson.interviewTip && (
                   <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white dark:from-emerald-950/20 dark:via-teal-950/10 dark:to-[#111726] border border-emerald-200/60 dark:border-emerald-800/40 space-y-1">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <span>🎯</span> 6. Pro Interview Tip
+                      <span>🎯</span> Practical Tip
                     </h3>
                     <p className="text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed font-medium">
                       {selectedLesson.interviewTip}
@@ -351,7 +278,7 @@ export const Learn: React.FC = () => {
                 {/* Key Takeaways */}
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Summary Checklist
+                    Remember This
                   </h3>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {selectedLesson.keyTakeaways.map((item, idx) => (
@@ -371,10 +298,10 @@ export const Learn: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                        Knowledge Check & Quiz
+                        Check Your Understanding
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Answer correctly to earn +{selectedLesson.xpReward} XP and mark this lesson completed.
+                        This is just for practice. Submit to see the correct answers and explanations.
                       </p>
                     </div>
                   </div>
@@ -443,10 +370,10 @@ export const Learn: React.FC = () => {
                     <Button
                       variant="primary"
                       onClick={handleSubmitQuiz}
-                      disabled={quizSubmitted && isLessonCompleted(selectedLesson.id)}
+                      disabled={quizSubmitted}
                       className="font-bold shadow-md"
                     >
-                      {quizSubmitted ? 'Quiz Completed' : 'Submit Answers & Claim XP'}
+                      {quizSubmitted ? 'Answers Shown' : 'Show Answers'}
                     </Button>
 
                     {quizSubmitted && (

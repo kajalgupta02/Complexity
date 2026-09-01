@@ -99,7 +99,7 @@ export const Learn: React.FC = () => {
         {/* Main Content Layout: Left Sidebar Lessons List + Right Lesson Detail */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Lessons List Column */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="lg:col-span-4 lg:sticky lg:top-20 lg:self-start space-y-4">
             {/* Category Filter Pills */}
             <div className="flex flex-wrap gap-1.5 p-1 bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 rounded-2xl">
               {categories.map((cat) => (
@@ -153,9 +153,12 @@ export const Learn: React.FC = () => {
           </div>
 
           {/* Right Lesson Detail Column */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]">
             {selectedLesson ? (
-              <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm space-y-8">
+              <div
+                key={selectedLesson.id}
+                className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm space-y-8 lg:h-full lg:overflow-y-auto"
+              >
                 {/* Header */}
                 <div className="space-y-3 pb-6 border-b border-gray-100 dark:border-gray-800/80">
                   <div className="flex flex-wrap items-center justify-between gap-2">

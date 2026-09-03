@@ -102,19 +102,20 @@ export function useDailyQuiz(dateKey = new Date().toISOString().slice(0, 10)) {
   }, [dateKey]);
 }
 
-const STORAGE_KEY = 'daily-quiz-progress-v1';
+const STORAGE_KEY = 'daily-quiz-progress-v2';
 
 export const DailyQuiz: React.FC = () => {
   const todayQuiz = useDailyQuiz();
   const { addToast } = useToast();
-  const { addXp, isAuthenticated } = useAuth();
+  const { addXp, isAuthenticated, user } = useAuth();
+  const quizStorageKey = `${STORAGE_KEY}:${user?.id ?? 'anonymous'}`;
 
   const [current, setCurrent] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [score, setScore] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(quizStorageKey);
       if (!saved) return { answered: 0, correct: 0, finished: false, date: new Date().toISOString().slice(0, 10) };
       const parsed = JSON.parse(saved);
       return parsed.date === new Date().toISOString().slice(0, 10)
@@ -126,7 +127,7 @@ export const DailyQuiz: React.FC = () => {
   });
 
   const persist = (next: typeof score) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    try { localStorage.setItem(quizStorageKey, JSON.stringify(next)); } catch { /* ignore */ }
     setScore(next);
   };
 

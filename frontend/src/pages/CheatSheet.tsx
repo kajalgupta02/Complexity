@@ -80,56 +80,69 @@ const operationTone = (value: string) => {
   return 'bg-rose-500/10 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300';
 };
 
-const ComplexityChart: React.FC = () => (
-  <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#111726]">
-    <div className="flex flex-col gap-3 border-b border-gray-100 p-6 dark:border-gray-800 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 className="text-lg font-black text-gray-900 dark:text-white">How time complexity grows</h2>
-        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">The same algorithm can feel very different as the input grows.</p>
+const CHART_LINES = [
+  { notation: 'O(1)', label: 'Constant', color: '#10b981', dot: 'bg-emerald-500', path: 'M55 262 C200 261 400 261 610 260', point: [610, 260], desc: 'The work stays flat as input grows. Ideal for direct lookups and simple arithmetic.' },
+  { notation: 'O(log n)', label: 'Logarithmic', color: '#06b6d4', dot: 'bg-cyan-500', path: 'M55 278 C160 269 325 258 610 232', point: [610, 232], desc: 'Growth is gentle because each step removes a large portion of the remaining input.' },
+  { notation: 'O(n)', label: 'Linear', color: '#6366f1', dot: 'bg-indigo-500', path: 'M55 278 L610 105', point: [610, 105], desc: 'Work grows in direct proportion to input size, such as one pass through an array.' },
+  { notation: 'O(n log n)', label: 'Linearithmic', color: '#f59e0b', dot: 'bg-amber-500', path: 'M55 282 C185 273 330 218 610 48', point: [610, 48], desc: 'A strong choice for efficient sorting, combining a pass with logarithmic splitting.' },
+  { notation: 'O(n²)', label: 'Quadratic', color: '#f43f5e', dot: 'bg-rose-500', path: 'M55 284 C205 278 370 180 500 40', point: [500, 40], desc: 'Nested work compounds quickly. Pairwise comparisons and naive nested loops often land here.' },
+  { notation: 'O(2ⁿ)', label: 'Exponential', color: '#a855f7', dot: 'bg-purple-500', path: 'M55 285 C130 280 205 235 265 42', point: [265, 42], desc: 'Each new input can multiply the work. Avoid this pattern unless the input is tightly bounded.' },
+] as const;
+
+const ComplexityChart: React.FC = () => {
+  const [selectedNotation, setSelectedNotation] = useState('O(n)');
+  const selectedLine = CHART_LINES.find((line) => line.notation === selectedNotation) ?? CHART_LINES[2];
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#111726]">
+      <div className="flex flex-col gap-3 border-b border-gray-100 p-6 dark:border-gray-800 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-black text-gray-900 dark:text-white">How time complexity grows</h2>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Select a curve to see how its growth affects real algorithms.</p>
+        </div>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Lower curves scale better</span>
       </div>
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Lower curves scale better</span>
-    </div>
-    <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-center">
-      <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-indigo-50/60 p-3 dark:border-gray-800 dark:from-[#0c101c] dark:to-indigo-950/20">
-        <svg viewBox="0 0 640 330" role="img" aria-label="Chart comparing common time complexity growth rates" className="h-auto w-full">
-          <defs>
-            <linearGradient id="chartFade" x1="0" x2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[60, 110, 160, 210, 260].map((y) => <line key={y} x1="55" x2="610" y1={y} y2={y} stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="4 6" />)}
-          <line x1="55" x2="610" y1="285" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
-          <line x1="55" x2="55" y1="25" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
-          <path d="M55 262 C200 261 400 261 610 260" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
-          <path d="M55 278 C160 269 325 258 610 232" fill="none" stroke="#06b6d4" strokeWidth="4" strokeLinecap="round" />
-          <path d="M55 278 L610 105" fill="none" stroke="#6366f1" strokeWidth="4" strokeLinecap="round" />
-          <path d="M55 282 C185 273 330 218 610 48" fill="none" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
-          <path d="M55 284 C205 278 370 180 500 40" fill="none" stroke="#f43f5e" strokeWidth="4" strokeLinecap="round" />
-          <path d="M55 285 C130 280 205 235 265 42" fill="none" stroke="#a855f7" strokeWidth="4" strokeLinecap="round" />
-          <text x="55" y="312" className="fill-slate-500 text-[13px]">small input</text>
-          <text x="525" y="312" className="fill-slate-500 text-[13px]">large input</text>
-          <text x="10" y="35" className="fill-slate-500 text-[13px]">work</text>
-        </svg>
-      </div>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        {[
-          ['O(1)', 'Constant', 'bg-emerald-500'],
-          ['O(log n)', 'Logarithmic', 'bg-cyan-500'],
-          ['O(n)', 'Linear', 'bg-indigo-500'],
-          ['O(n log n)', 'Linearithmic', 'bg-amber-500'],
-          ['O(n²)', 'Quadratic', 'bg-rose-500'],
-          ['O(2ⁿ)', 'Exponential', 'bg-purple-500'],
-        ].map(([notation, label, color]) => (
-          <div key={notation} className="flex items-center gap-2 rounded-xl bg-gray-50 px-2.5 py-2 dark:bg-[#0c101c]">
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${color}`} />
-            <div><p className="font-mono font-bold text-gray-900 dark:text-white">{notation}</p><p className="text-[10px] text-gray-500 dark:text-gray-400">{label}</p></div>
+      <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-center">
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-indigo-50/60 p-2 dark:border-gray-800 dark:from-[#0c101c] dark:to-indigo-950/20 sm:p-3">
+          <svg viewBox="0 0 640 330" role="img" aria-label="Interactive chart comparing common time complexity growth rates" className="h-auto w-full">
+            {[60, 110, 160, 210, 260].map((y) => <line key={y} x1="55" x2="610" y1={y} y2={y} stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="4 6" />)}
+            <line x1="55" x2="610" y1="285" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
+            <line x1="55" x2="55" y1="25" y2="285" stroke="currentColor" className="text-slate-400 dark:text-slate-500" strokeWidth="2" />
+            {CHART_LINES.map((line) => {
+              const isSelected = line.notation === selectedNotation;
+              return (
+                <g key={line.notation} onClick={() => setSelectedNotation(line.notation)} className="cursor-pointer">
+                  <path d={line.path} fill="none" stroke={line.color} strokeWidth={isSelected ? 7 : 4} strokeLinecap="round" opacity={isSelected ? 1 : 0.3} className="transition-all duration-200" />
+                  <circle cx={line.point[0]} cy={line.point[1]} r={isSelected ? 8 : 5} fill={line.color} opacity={isSelected ? 1 : 0.45} className="transition-all duration-200" />
+                </g>
+              );
+            })}
+            <text x="55" y="312" className="fill-slate-500 text-[13px]">small input</text>
+            <text x="525" y="312" className="fill-slate-500 text-[13px]">large input</text>
+            <text x="10" y="35" className="fill-slate-500 text-[13px]">work</text>
+          </svg>
+        </div>
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+            <p className="font-mono text-lg font-black text-indigo-700 dark:text-indigo-300">{selectedLine.notation}</p>
+            <p className="mt-1 text-xs leading-relaxed text-indigo-950 dark:text-indigo-100">{selectedLine.desc}</p>
           </div>
-        ))}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {CHART_LINES.map((line) => {
+              const isSelected = line.notation === selectedNotation;
+              return (
+                <button key={line.notation} type="button" onClick={() => setSelectedNotation(line.notation)} aria-pressed={isSelected} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-all ${isSelected ? 'border-indigo-500 bg-indigo-50 shadow-sm dark:border-indigo-400 dark:bg-indigo-500/10' : 'border-transparent bg-gray-50 hover:border-gray-200 dark:bg-[#0c101c] dark:hover:border-gray-700'}`}>
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${line.dot}`} />
+                  <span><span className="block font-mono font-bold text-gray-900 dark:text-white">{line.notation}</span><span className="block text-[10px] text-gray-500 dark:text-gray-400">{line.label}</span></span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export const CheatSheet: React.FC = () => {
   const [search, setSearch] = useState('');

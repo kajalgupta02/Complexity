@@ -31,9 +31,18 @@ interface AuthContextType {
 
 const STORAGE_KEYS = {
   USER: 'complexity_user_session_v1',
-  SAVED: 'complexity_saved_analyses_v1',
-  HISTORY: 'complexity_history_v1',
-  PROGRESS: 'complexity_learning_progress_v1',
+  SAVED: 'complexity_saved_analyses_v2',
+  HISTORY: 'complexity_history_v2',
+  PROGRESS: 'complexity_learning_progress_v2',
+};
+
+const EMPTY_LEARNING_PROGRESS: UserLearningProgress = {
+  completedLessonIds: [],
+  quizScores: {},
+  totalXp: 0,
+  streakDays: 0,
+  lastActiveDate: '',
+  earnedBadgeIds: [],
 };
 
 const DEFAULT_DEMO_USER: User = {
@@ -44,84 +53,9 @@ const DEFAULT_DEMO_USER: User = {
   role: 'Senior Software Engineer',
   plan: 'Pro',
   joinedDate: 'August 2024',
-  xp: 480,
-  streak: 5,
-  level: 3,
-};
-
-const INITIAL_SAVED_ANALYSES: SavedAnalysis[] = [
-  {
-    id: 'saved-1',
-    title: 'Two Sum - Hash Map Optimization',
-    code: `function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const diff = target - nums[i];
-    if (map.has(diff)) {
-      return [map.get(diff), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
-}`,
-    language: 'javascript',
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(n)',
-    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-    tags: ['LeetCode #1', 'HashMap', 'Optimized'],
-    isFavorite: true,
-    notes: 'Transformed from naive O(n²) nested search to linear pass with hash table.',
-  },
-  {
-    id: 'saved-2',
-    title: 'Merge Sort - Divide & Conquer',
-    code: `function mergeSort(arr) {
-  if (arr.length <= 1) return arr;
-  const mid = Math.floor(arr.length / 2);
-  const left = mergeSort(arr.slice(0, mid));
-  const right = mergeSort(arr.slice(mid));
-  return merge(left, right);
-}`,
-    language: 'javascript',
-    timeComplexity: 'O(n log n)',
-    spaceComplexity: 'O(n)',
-    timestamp: new Date(Date.now() - 3600000 * 48).toISOString(),
-    tags: ['Divide and Conquer', 'Recursion', 'Sorting'],
-    isFavorite: false,
-    notes: 'Standard recurrence relation T(n) = 2T(n/2) + O(n).',
-  },
-  {
-    id: 'saved-3',
-    title: 'Binary Search Implementation',
-    code: `def binary_search(arr, target):
-    low = 0
-    high = len(arr) - 1
-    while low <= high:
-        mid = (low + high) // 2
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            low = mid + 1
-        else:
-            high = mid - 1
-    return -1`,
-    language: 'python',
-    timeComplexity: 'O(log n)',
-    spaceComplexity: 'O(1)',
-    timestamp: new Date(Date.now() - 3600000 * 72).toISOString(),
-    tags: ['Python', 'Binary Search', 'Logarithmic'],
-    isFavorite: true,
-    notes: 'Halves the search space at each iteration.',
-  },
-];
-
-const INITIAL_LEARNING_PROGRESS: UserLearningProgress = {
-  completedLessonIds: ['lesson-1', 'lesson-2'],
-  quizScores: { 'lesson-1': 100, 'lesson-2': 100 },
-  totalXp: 480,
-  streakDays: 5,
-  lastActiveDate: new Date().toISOString(),
-  earnedBadgeIds: ['first_analysis', 'o1_master'],
+  xp: 0,
+  streak: 0,
+  level: 1,
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,9 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SAVED);
-      return saved ? JSON.parse(saved) : INITIAL_SAVED_ANALYSES;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_SAVED_ANALYSES;
+      return [];
     }
   });
 
@@ -157,11 +91,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [learningProgress, setLearningProgress] = useState<UserLearningProgress>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROGRESS);
-      return saved ? JSON.parse(saved) : INITIAL_LEARNING_PROGRESS;
+      return saved ? JSON.parse(saved) : EMPTY_LEARNING_PROGRESS;
     } catch {
-      return INITIAL_LEARNING_PROGRESS;
+      return EMPTY_LEARNING_PROGRESS;
     }
   });
+
+  const resetUserData = () => {
+    setSavedAnalyses([]);
+    setAnalysisHistory([]);
+    setLearningProgress(EMPTY_LEARNING_PROGRESS);
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -193,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [learningProgress]);
 
   const login = async (email: string): Promise<boolean> => {
+    resetUserData();
     const namePart = email.split('@')[0] || 'Developer';
     const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
     const loggedInUser: User = {
@@ -203,15 +144,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: 'Software Engineer',
       plan: 'Pro',
       joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      xp: learningProgress.totalXp,
-      streak: Math.max(1, learningProgress.streakDays),
-      level: Math.floor(learningProgress.totalXp / 150) + 1,
+      xp: 0,
+      streak: 0,
+      level: 1,
     };
     setUser(loggedInUser);
     return true;
   };
 
   const signup = async (name: string, email: string): Promise<boolean> => {
+    resetUserData();
     const newUser: User = {
       id: 'usr-' + Math.random().toString(36).substring(2, 9),
       name,
@@ -220,8 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: 'Algorithm Engineer',
       plan: 'Free',
       joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      xp: 100,
-      streak: 1,
+      xp: 0,
+      streak: 0,
       level: 1,
     };
     setUser(newUser);
@@ -229,10 +171,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginAsGuest = () => {
+    resetUserData();
     setUser(DEFAULT_DEMO_USER);
   };
 
   const logout = () => {
+    resetUserData();
     setUser(null);
   };
 

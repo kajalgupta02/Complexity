@@ -104,7 +104,20 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
+                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{savedAnalyses.length}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Saved</p>
+                </div>
+                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
+                  <p className="text-xl font-black text-cyan-600 dark:text-cyan-400">{analysisHistory.length}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Analyses</p>
+                </div>
+                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{learningProgress.completedLessonIds.length}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Lessons</p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
@@ -126,9 +139,6 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Daily Quiz Card */}
-        <DailyQuiz />
 
         {/* Dashboard Tabs Header */}
         <div className="flex border-b border-gray-200 dark:border-gray-800">
@@ -513,6 +523,19 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Daily Quiz Card */}
+        <section className="pt-2" aria-labelledby="daily-quiz-heading">
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+              Keep exploring
+            </p>
+            <h2 id="daily-quiz-heading" className="text-xl font-black text-gray-900 dark:text-white">
+              Test your Big-O instincts
+            </h2>
+          </div>
+          <DailyQuiz key={user?.id ?? 'anonymous'} />
+        </section>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { SEO } from '@/components/SEO';
 
@@ -301,6 +301,49 @@ export const Landing: React.FC = () => {
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">O(1) In-Place</span>
                 <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-xs font-semibold">Recursion Call Stack</span>
                 <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold">Dynamic Data Structures</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ABOUT COMPLEXITY SECTION */}
+      <section className="py-16 sm:py-20 border-t border-gray-200/80 dark:border-gray-800/80 bg-[#f8fafc] dark:bg-[#090d16]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10 items-center">
+            <div className="space-y-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                About Complexity
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                A clearer way to reason about algorithmic performance
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                Complexity is a client-side static analyzer built to make Big-O less mysterious. It reads the structure of your code, highlights loops, recursion, and common operations, then explains how those patterns shape time and space usage.
+              </p>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                Your code stays in the browser. No execution, upload, or remote storage is required.
+              </p>
+              <Link
+                to="/about"
+                className="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+              >
+                Explore the analysis methodology <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm">
+                <p className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">13</p>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">Languages</p>
+              </div>
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm">
+                <p className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400">0</p>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">Code uploads</p>
+              </div>
+              <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm">
+                <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">∞</p>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">Ways to learn</p>
               </div>
             </div>
           </div>

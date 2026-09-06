@@ -9,6 +9,7 @@ import { Footer } from '@/components/Footer';
 import Landing from '@/pages/Landing';
 import Analyzer from '@/pages/Analyzer';
 import Learn from '@/pages/Learn';
+import Quiz from '@/pages/Quiz';
 import About from '@/pages/About';
 import Dashboard from '@/pages/Dashboard';
 import Share from '@/pages/Share';
@@ -48,6 +49,7 @@ function App() {
                   <Route path="/" element={<Landing />} />
                   <Route path="/analyzer" element={<Analyzer />} />
                   <Route path="/learn" element={<Learn />} />
+                  <Route path="/quiz" element={<Quiz />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/share" element={<Share />} />

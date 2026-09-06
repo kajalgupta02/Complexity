@@ -22,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
     { name: 'About', path: '/about' },
     { name: 'Analyzer', path: '/analyzer' },
     { name: 'Learn', path: '/learn' },
+    { name: 'Quiz', path: '/quiz' },
     { name: 'Cheat Sheet', path: '/cheatsheet' },
   ];
 

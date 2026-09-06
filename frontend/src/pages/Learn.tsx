@@ -82,6 +82,9 @@ export const Learn: React.FC = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 Choose a topic, read the plain-English explanation, study the example, and use the self-check to reinforce it.
               </p>
+              <Button variant="primary" size="sm" asChild className="mt-3">
+                <Link to="/quiz">Take the full quiz →</Link>
+              </Button>
             </div>
 
             <div className="rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 p-5">

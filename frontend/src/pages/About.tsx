@@ -69,27 +69,71 @@ export const About: React.FC = () => {
         canonical="/about"
       />
       {/* HERO SECTION */}
-      <section className="pt-16 pb-16 border-b border-gray-200 dark:border-gray-800/80 bg-white dark:bg-[#0d121f]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold tracking-wide">
-            <span>✨ Architecture & Principles</span>
+      <section className="relative overflow-hidden border-b border-gray-200 dark:border-gray-800/80 bg-white dark:bg-[#0d121f]">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_78%_18%,rgba(99,102,241,0.16),transparent_28%),radial-gradient(circle_at_18%_0%,rgba(6,182,212,0.08),transparent_25%)]" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
+          <div className="grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-12">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold tracking-wide">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Architecture & Principles
+              </div>
+              <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.02] text-gray-900 dark:text-white">
+                See the thinking behind every <span className="text-indigo-500">Big-O result.</span>
+              </h1>
+              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl leading-relaxed">
+                Complexity turns source code into understandable time and space bounds using private, client-side static analysis.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Button variant="primary" asChild className="font-bold shadow-lg shadow-indigo-500/20">
+                  <Link to="/analyzer">Open Analyzer <span aria-hidden="true">→</span></Link>
+                </Button>
+                <Button variant="secondary" asChild className="font-semibold">
+                  <Link to="/learn">Explore Learning</Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="relative rounded-3xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gray-950 p-5 shadow-2xl shadow-indigo-950/20">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-gray-500">analysis pipeline</span>
+              </div>
+              <div className="space-y-3 py-5 font-mono text-xs">
+                {['Tokenize source', 'Detect loops & recursion', 'Model memory growth', 'Derive complexity bounds'].map((step, index) => (
+                  <div key={step} className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-300">{index + 1}</span>
+                    <span className="text-gray-300">{step}</span>
+                    <span className="ml-auto text-emerald-400">done</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-end justify-between rounded-2xl bg-white/5 p-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-500">worst-case time</p>
+                  <p className="mt-1 text-2xl font-black text-white">O(n log n)</p>
+                </div>
+                <span className="rounded-lg bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-300">84% confidence</span>
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white">
-            How Complexity Works
-          </h1>
-
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Complexity is a client-side static analyzer that estimates Time (Big-O) and Space Complexity from source code without running your code.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Button variant="primary" asChild className="font-bold shadow-lg shadow-indigo-500/20">
-              <Link to="/analyzer">Open Complexity Analyzer →</Link>
-            </Button>
-            <Button variant="secondary" asChild className="font-semibold">
-              <Link to="/learn">Explore Learning Modules</Link>
-            </Button>
+          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-800 border-y border-gray-200 dark:border-gray-800">
+            {[
+              ['13', 'languages supported'],
+              ['100%', 'client-side privacy'],
+              ['5', 'analysis stages'],
+              ['0', 'code execution required'],
+            ].map(([value, label]) => (
+              <div key={label} className="px-4 py-5 first:pl-0 last:pr-0">
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">{value}</p>
+                <p className="mt-1 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

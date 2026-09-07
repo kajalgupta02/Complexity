@@ -88,7 +88,7 @@ const QUIZ_BANK: QuizQuestion[] = [
   },
 ];
 
-export function useDailyQuiz(dateKey = new Date().toISOString().slice(0, 10)) {
+function useDailyQuiz(dateKey = new Date().toISOString().slice(0, 10)) {
   return useMemo(() => {
     const seeded = Array.from(QUIZ_BANK);
     let seed = 0;

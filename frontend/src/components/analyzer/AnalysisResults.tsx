@@ -41,6 +41,18 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
     ? result.timeComplexity.trim().toLowerCase() === linkedProblem.expectedTime.trim().toLowerCase()
     : null;
 
+  const confidenceLabel = result.timeConfidence >= 80
+    ? 'High confidence'
+    : result.timeConfidence >= 60
+      ? 'Moderate confidence'
+      : 'Low confidence';
+
+  const confidenceColor = result.timeConfidence >= 80
+    ? 'bg-emerald-500'
+    : result.timeConfidence >= 60
+      ? 'bg-amber-500'
+      : 'bg-red-500';
+
   return (
     <div className="space-y-6 text-left">
       {/* 1. Main Complexity Cards & Comparison Banner */}
@@ -150,7 +162,92 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         </div>
       </div>
 
-      {/* 2. Step-by-Step Mathematical Derivation */}
+      {/* 2. Explainability & Confidence */}
+      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-sm">
+                ✓
+              </span>
+              Analysis Confidence
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              A static estimate based on the structures and patterns detected in your code.
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-lg font-black text-gray-900 dark:text-white">{result.timeConfidence}%</p>
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{confidenceLabel}</p>
+          </div>
+        </div>
+
+        <div>
+          <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${confidenceColor}`}
+              style={{ width: `${Math.max(0, Math.min(100, result.timeConfidence))}%` }}
+            />
+          </div>
+          {result.isPartialAnalysis && (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              This code appears incomplete, so the confidence score has been reduced.
+            </p>
+          )}
+        </div>
+
+        {result.detectedPatterns.length > 0 && (
+          <div>
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+              Detected signals
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {result.detectedPatterns.map((pattern) => (
+                <span
+                  key={pattern}
+                  className="px-2.5 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-900/50 text-xs font-medium text-cyan-800 dark:text-cyan-300"
+                >
+                  {pattern}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result.reasoningChain.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {result.reasoningChain.slice(0, 4).map((reasoning) => (
+              <div
+                key={reasoning.id}
+                className="p-3.5 rounded-2xl bg-gray-50 dark:bg-[#0c101c] border border-gray-200 dark:border-gray-800"
+              >
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{reasoning.title}</p>
+                  <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                    {reasoning.confidenceChange >= 0 ? '+' : ''}{reasoning.confidenceChange}%
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{reasoning.rule}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {result.knownLimitations.length > 0 && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+            <h3 className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">Keep in mind</h3>
+            <ul className="space-y-1">
+              {result.knownLimitations.slice(0, 3).map((limitation) => (
+                <li key={limitation} className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
+                  • {limitation}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Step-by-Step Mathematical Derivation */}
       {result.detailed?.complexityDerivation && result.detailed.complexityDerivation.length > 0 && (
         <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-5">
           <div className="flex items-start justify-between gap-3">

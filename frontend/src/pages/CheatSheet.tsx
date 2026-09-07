@@ -62,6 +62,8 @@ const ALGORITHMS: AlgoItem[] = [
   { name: 'Topological Sort (Kahn’s Algo)', category: 'Graph', best: 'O(V + E)', avg: 'O(V + E)', worst: 'O(V + E)', space: 'O(V)', notes: 'DAG dependency ordering' },
 ];
 
+type CheatSheetCategory = 'All' | 'DataStructures' | 'Sorting' | 'Searching' | 'Graph';
+
 const BIG_O_RANKS = [
   { notation: 'O(1)', label: 'Constant', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30', status: 'Excellent', desc: 'Instant lookup / math operation regardless of dataset size.' },
   { notation: 'O(log n)', label: 'Logarithmic', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30', status: 'Great', desc: 'Binary search, balanced tree traversal. Splits input in half every step.' },
@@ -248,7 +250,7 @@ export const CheatSheet: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setSelectedCategory(tab.id as any)}
+              onClick={() => setSelectedCategory(tab.id as CheatSheetCategory)}
               className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
                 selectedCategory === tab.id
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'

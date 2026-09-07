@@ -7,7 +7,7 @@ interface SEOProps {
   canonical?: string;
   ogType?: 'website' | 'article';
   ogImage?: string;
-  jsonLd?: Record<string, any> | Record<string, any>[];
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const DEFAULT_TITLE = "Complexity — The Interview Candidate's Big-O Sidekick";

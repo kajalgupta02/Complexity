@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
@@ -196,6 +196,41 @@ export const Analyzer: React.FC = () => {
   const [code, setCode] = useState<string>(STARTER_CODE.java);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<InterviewProblem | null>(null);
+  const [editorWidth, setEditorWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('analyzer-editor-width'));
+    return Number.isFinite(saved) && saved >= 35 && saved <= 75 ? saved : 58;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('analyzer-editor-width', String(editorWidth));
+  }, [editorWidth]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const workspace = workspaceRef.current;
+      if (!workspace) return;
+      const bounds = workspace.getBoundingClientRect();
+      const nextWidth = ((event.clientX - bounds.left) / bounds.width) * 100;
+      setEditorWidth(Math.min(75, Math.max(35, nextWidth)));
+    };
+
+    const stopResizing = () => setIsResizing(false);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopResizing);
+
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResizing);
+    };
+  }, [isResizing]);
 
   // Handle URL queries on mount (e.g. ?code=...&lang=...&problem=...)
   useEffect(() => {
@@ -252,8 +287,8 @@ export const Analyzer: React.FC = () => {
       });
 
       addToast('success', 'Analysis completed successfully!');
-    } catch (err: any) {
-      addToast('warning', err.message || 'Analysis failed.');
+    } catch (err: unknown) {
+      addToast('warning', err instanceof Error ? err.message : 'Analysis failed.');
     }
   };
 
@@ -295,9 +330,13 @@ export const Analyzer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Main 2-Column Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div
+          ref={workspaceRef}
+          className={`analyzer-workspace grid grid-cols-1 lg:items-start ${isResizing ? 'select-none' : ''}`}
+          style={{ '--editor-width': `${editorWidth}%` } as React.CSSProperties}
+        >
           {/* Left Column: Fixed / Sticky Code Editor (Does not scroll out of view when scrolling explanation) */}
-          <div className="lg:col-span-7 lg:sticky lg:top-20 lg:h-[calc(100vh-105px)] lg:self-start flex flex-col">
+          <div className="lg:sticky lg:top-20 lg:h-[calc(100vh-105px)] lg:self-start flex flex-col min-w-0">
             <CodeEditor
               code={code}
               onChange={setCode}
@@ -308,8 +347,30 @@ export const Analyzer: React.FC = () => {
             />
           </div>
 
+          <button
+            type="button"
+            aria-label="Resize analyzer columns"
+            aria-valuemin={35}
+            aria-valuemax={75}
+            aria-valuenow={Math.round(editorWidth)}
+            role="separator"
+            className="hidden lg:flex h-full min-h-[calc(100vh-105px)] items-center justify-center cursor-col-resize group touch-none"
+            onPointerDown={() => setIsResizing(true)}
+            onDoubleClick={() => setEditorWidth(58)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowLeft') setEditorWidth((width) => Math.max(35, width - 2));
+              if (event.key === 'ArrowRight') setEditorWidth((width) => Math.min(75, width + 2));
+              if (event.key === 'Home') setEditorWidth(35);
+              if (event.key === 'End') setEditorWidth(75);
+            }}
+          >
+            <span className="flex h-16 w-1.5 items-center justify-center rounded-full bg-gray-200 transition-colors group-hover:bg-indigo-400 dark:bg-gray-700 dark:group-hover:bg-indigo-500">
+              <span className="h-8 w-0.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+            </span>
+          </button>
+
           {/* Right Column: Analysis Results / Explanation (Scrolls down independently) */}
-          <div className="lg:col-span-5 space-y-6 pb-12">
+          <div className="space-y-6 pb-12 min-w-0">
             {result ? (
               <AnalysisResults
                 result={result}

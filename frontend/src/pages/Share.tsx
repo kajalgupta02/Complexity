@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import LZString from 'lz-string';
 import { Button } from '@/components/ui/Button';
 import { useAnalyzerWorker } from '@/hooks/useAnalyzerWorker';
-import type { SupportedLanguage } from '@/lib/analyzer';
+import type { AnalysisResult, SupportedLanguage } from '@/lib/analyzer';
 import { SEO } from '@/components/SEO';
 
 export const Share: React.FC = () => {
@@ -13,7 +13,7 @@ export const Share: React.FC = () => {
   
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState<SupportedLanguage>('javascript');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export const Share: React.FC = () => {
 
       analyze(parsed.code, parsed.language)
         .then(res => setResult(res))
-        .catch(err => setError(err.message));
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Analysis failed.'));
     } catch {
       setError('Failed to load shared snippet. The link might be broken.');
     }

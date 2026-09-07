@@ -40,8 +40,8 @@ export const Navbar: React.FC<NavbarProps> = ({ theme, setTheme }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-[#090d16]/85 border-b border-gray-200/80 dark:border-gray-800/80 transition-colors">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/90 dark:bg-[#090d16]/90 border-b border-gray-200/80 dark:border-gray-800/80 transition-colors">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
           <div className="flex items-center gap-6 sm:gap-8">
             <Link to="/" className="flex items-center gap-3 shrink-0 group">

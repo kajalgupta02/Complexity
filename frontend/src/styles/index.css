@@ -1,5 +1,5 @@
 /* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -134,11 +134,19 @@ html.dark {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--gradient-bg);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, button, input, select, textarea {
+  letter-spacing: -0.01em;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
 }
 
 *:focus-visible {
@@ -348,6 +356,48 @@ html.dark .modern-card {
   mask-composite: exclude;
   pointer-events: none;
   opacity: 0.8;
+}
+
+/* Shared product surfaces: keep cards quiet, legible, and consistently elevated. */
+div[class*="rounded-3xl"][class*="border-gray-200"],
+div[class*="rounded-3xl"][class*="border-indigo-200"],
+div[class*="rounded-3xl"][class*="border-emerald-200"],
+div[class*="rounded-3xl"][class*="border-cyan-200"] {
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -18px rgba(15, 23, 42, 0.38);
+}
+
+div[class*="rounded-2xl"][class*="border-gray-200"],
+div[class*="rounded-2xl"][class*="border-indigo-200"],
+div[class*="rounded-2xl"][class*="border-cyan-200"] {
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+html.dark div[class*="rounded-3xl"][class*="border-gray-800"],
+html.dark div[class*="rounded-3xl"][class*="border-indigo-900"],
+html.dark div[class*="rounded-3xl"][class*="border-emerald-800"],
+html.dark div[class*="rounded-3xl"][class*="border-cyan-900"] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 32px -22px rgba(0, 0, 0, 0.9);
+}
+
+@media (min-width: 640px) {
+  div[class*="rounded-3xl"][class*="border-gray-200"][class*="p-6"],
+  div[class*="rounded-3xl"][class*="border-gray-200"][class*="p-8"] {
+    border-radius: 1.375rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  div[class*="rounded-3xl"][class*="border-gray-200"],
+  div[class*="rounded-2xl"][class*="border-gray-200"] {
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  div[class*="rounded-3xl"][class*="border-gray-200"]:hover {
+    border-color: rgba(99, 102, 241, 0.28);
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05), 0 16px 34px -22px rgba(79, 70, 229, 0.32);
+  }
 }
 
 .control-strip {
@@ -677,4 +727,121 @@ html.dark .select-native option {
     calc(100% - 14px) 50%,
     calc(100% - 10px) 50%;
   background-size: 4px 4px, 4px 4px;
+}
+
+/* Page rhythm: predictable outer breathing room and practical card density. */
+main > div[class~="min-h-screen"] {
+  min-height: calc(100vh - 4.25rem);
+  padding-top: clamp(1.5rem, 3vw, 2.75rem);
+  padding-bottom: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+main > div[class~="min-h-screen"] > div[class*="max-w-"] {
+  width: min(100%, 80rem);
+}
+
+.analyzer-workspace {
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .analyzer-workspace {
+    grid-template-columns: minmax(0, var(--editor-width)) 12px minmax(0, calc(100% - var(--editor-width) - 12px));
+    gap: 0;
+  }
+}
+
+div[class*="rounded-3xl"][class*="border-gray-200"][class~="p-6"],
+div[class*="rounded-3xl"][class*="border-gray-200"][class~="p-8"],
+div[class*="rounded-3xl"][class*="border-gray-800"][class~="p-6"],
+div[class*="rounded-3xl"][class*="border-gray-800"][class~="p-8"] {
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
+}
+
+div[class*="rounded-2xl"][class*="border-gray-200"][class~="p-5"],
+div[class*="rounded-2xl"][class*="border-gray-800"][class~="p-5"] {
+  padding: 1rem;
+}
+
+@media (max-width: 639px) {
+  main > div[class~="min-h-screen"] > div[class*="max-w-"] {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Final UI polish: one restrained visual language across every surface. */
+body {
+  line-height: 1.5;
+  background-color: var(--bg-base);
+}
+
+main {
+  isolation: isolate;
+}
+
+main > div[class~="min-h-screen"] {
+  background-color: var(--bg-base);
+  color: var(--color-text-primary);
+}
+
+html.dark main > div[class~="min-h-screen"] {
+  background-color: var(--bg-base);
+}
+
+/* Keep content widths and gutters predictable on every route. */
+main > div[class~="min-h-screen"] > div[class*="max-w-"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Professional panels: clear edge, modest radius, and low-noise elevation. */
+div[class*="rounded-3xl"][class*="border"]:not([class*="bg-\[#0d121f\]"]),
+div[class*="rounded-2xl"][class*="border-gray-200"],
+div[class*="rounded-2xl"][class*="border-gray-800"] {
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -20px rgba(15, 23, 42, 0.42);
+}
+
+html.dark div[class*="rounded-3xl"][class*="border"]:not([class*="bg-\[#0d121f\]"]),
+html.dark div[class*="rounded-2xl"][class*="border-gray-800"] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 12px 28px -22px rgba(0, 0, 0, 0.95);
+}
+
+/* Consistent form controls without changing the CodeMirror editor. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 2.5rem;
+  border-radius: 0.625rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(99, 102, 241, 0.75);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+  outline: none;
+}
+
+button:not(:disabled),
+a {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+@media (max-width: 639px) {
+  h1 {
+    line-height: 1.08;
+  }
+
+  h2, h3 {
+    line-height: 1.15;
+  }
+
+  div[class*="rounded-3xl"][class*="border"],
+  div[class*="rounded-2xl"][class*="border-gray-200"],
+  div[class*="rounded-2xl"][class*="border-gray-800"] {
+    border-radius: 0.875rem;
+  }
 }

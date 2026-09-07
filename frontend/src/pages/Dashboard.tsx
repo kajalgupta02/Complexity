@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import type { SavedAnalysis } from '@/types/auth';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { LEARNING_LESSONS, BADGES } from '@/data/learningCurriculum';
@@ -42,7 +43,7 @@ export const Dashboard: React.FC = () => {
     addToast('success', 'Code copied to clipboard!');
   };
 
-  const handleShare = (item: any) => {
+  const handleShare = (item: SavedAnalysis) => {
     const data = JSON.stringify({ code: item.code, language: item.language });
     const encoded = LZString.compressToEncodedURIComponent(data);
     const url = `${window.location.origin}/share?data=${encoded}`;
@@ -77,6 +78,22 @@ export const Dashboard: React.FC = () => {
         canonical="/dashboard"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Workspace</p>
+            <h1 className="mt-1 text-3xl sm:text-4xl font-black tracking-tight text-gray-900 dark:text-white">Your engineering dashboard</h1>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Review your analyses, keep useful snippets close, and continue building complexity intuition.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" asChild>
+              <Link to="/learn">Continue learning</Link>
+            </Button>
+            <Button variant="primary" size="sm" asChild>
+              <Link to="/analyzer">New analysis <span aria-hidden="true">→</span></Link>
+            </Button>
+          </div>
+        </div>
+
         {/* User Profile Card */}
         <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
           {isAuthenticated && user ? (

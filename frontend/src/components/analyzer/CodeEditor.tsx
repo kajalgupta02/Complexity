@@ -156,17 +156,21 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
   const languageCompartmentRef = useRef<Compartment>(new Compartment());
+  const initialCodeRef = useRef(code);
+  const initialLanguageRef = useRef(language);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Initialize CodeMirror instance
   useEffect(() => {
     if (!editorContainerRef.current) return;
 
-    const langExt = LANG_EXTENSIONS[language] || javascript();
+    const langExt = LANG_EXTENSIONS[initialLanguageRef.current] || javascript();
 
     const updateListener = EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
         const val = update.state.doc.toString();
-        onChange(val);
+        onChangeRef.current(val);
       }
     });
 
@@ -203,7 +207,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     });
 
     const state = EditorState.create({
-      doc: code,
+      doc: initialCodeRef.current,
       extensions: [
         basicSetup,
         oneDark,
@@ -224,7 +228,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       view.destroy();
       editorViewRef.current = null;
     };
-  }, []); // Run once on mount
+  }, []);
 
   // Sync external code updates into editor
   useEffect(() => {

@@ -3,7 +3,6 @@
 
 A production-grade, full-stack web application designed to eliminate algorithmic complexity. Complexity performs instant Abstract Syntax Tree (AST) static analysis, derives Big-O time and space complexity, visualizes recursion trees and memory allocations, provides automated code refactoring, and features an interactive Time & Space Complexity Masterclass.
 
----
 
 ## 🌟 Key Features
 
@@ -31,7 +30,6 @@ A production-grade, full-stack web application designed to eliminate algorithmic
    - Personal Snippet Repository: save, tag, search, favorite, and reload analyzed snippets.
    - Activity history logger and learning progress / badge tracker.
 
----
 
 ## 🏗️ Architecture & Tech Stack
 
@@ -63,13 +61,10 @@ Complexity/
 └── package.json                   # Monorepo workspace runner
 ```
 
----
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ (Node 20+ recommended)
-- npm / pnpm / yarn
 
 ### Installation
 ```bash
@@ -89,8 +84,6 @@ npm run dev:frontend
 npm run dev:backend
 ```
 
-- **Frontend App**: `http://localhost:3000`
-- **Backend API**: `http://localhost:5000` (`GET /api/health`, `POST /api/analyze`)
 
 ### Build & Verification
 ```bash
@@ -107,7 +100,6 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 ```
 
----
 
 ## 📄 License
 MIT © Complexity Inc.

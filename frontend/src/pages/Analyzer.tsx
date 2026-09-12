@@ -321,7 +321,7 @@ export const Analyzer: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-6 px-4 sm:px-6">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
         title="Big-O Complexity Analyzer"
         description="Instant Big-O time and space complexity analyzer for 13 programming languages. Connect your solutions to Blind 75 & NeetCode 150 problems."

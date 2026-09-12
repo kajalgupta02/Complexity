@@ -62,7 +62,7 @@ export const About: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
         title="About the Static Analysis Engine & Big-O Methodology"
         description="Learn how Complexity's static AST analysis pipeline calculates Big-O time and space bounds across 13 programming languages without code execution."

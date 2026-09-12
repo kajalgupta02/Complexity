@@ -26,12 +26,14 @@ export const Dashboard: React.FC = () => {
   } = useAuth();
 
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'saved' | 'history'>(
-    initialTab === 'history' ? 'history' : 'saved'
+  const [activeTab, setActiveTab] = useState<'saved' | 'history' | 'learning'>(
+    initialTab === 'history' ? 'history' : initialTab === 'learning' ? 'learning' : 'saved'
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [langFilter, setLangFilter] = useState('All');
   const [complexityFilter, setComplexityFilter] = useState('All');
+  const completedLessons = learningProgress.completedLessonIds.length;
+  const learningPercent = Math.round((completedLessons / LEARNING_LESSONS.length) * 100);
 
   const handleOpenSnippet = (code: string, language: string) => {
     // Navigate to Analyzer and pass the code and language
@@ -71,13 +73,13 @@ export const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
         title="Dashboard & Saved Snippets"
         description="Manage your saved code snippets, track learning progress, view historical analyses, and test your DSA skills with the Daily Quiz."
         canonical="/dashboard"
       />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+      <div className="page-container space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Workspace</p>
@@ -95,16 +97,16 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* User Profile Card */}
-        <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+        <div className="modern-card overflow-hidden p-6 sm:p-8">
           {isAuthenticated && user ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 min-w-0">
                 <img
                   src={user.avatar}
                   alt={user.name}
                   className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/30 bg-indigo-100 dark:bg-indigo-950 shadow-md"
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-black text-gray-900 dark:text-white">
                       {user.name}
@@ -113,8 +115,8 @@ export const Dashboard: React.FC = () => {
                       {user.plan} Tier
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {user.email} • Joined {user.joinedDate}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                    {user.email} <span className="mx-1 text-gray-300 dark:text-gray-600">/</span> Joined {user.joinedDate}
                   </p>
                   <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
                     {user.role}
@@ -122,16 +124,16 @@ export const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto">
-                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
+                <div className="min-w-[76px] rounded-2xl bg-bg-tertiary dark:bg-bg-tertiary-dark px-3 py-3 text-center border border-border-subtle">
                   <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{savedAnalyses.length}</p>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Saved</p>
                 </div>
-                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
+                <div className="min-w-[76px] rounded-2xl bg-bg-tertiary dark:bg-bg-tertiary-dark px-3 py-3 text-center border border-border-subtle">
                   <p className="text-xl font-black text-cyan-600 dark:text-cyan-400">{analysisHistory.length}</p>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Analyses</p>
                 </div>
-                <div className="min-w-[76px] rounded-2xl bg-gray-50 dark:bg-[#0c101c] px-3 py-3 text-center border border-gray-100 dark:border-gray-800">
-                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{learningProgress.completedLessonIds.length}</p>
+                <div className="min-w-[76px] rounded-2xl bg-bg-tertiary dark:bg-bg-tertiary-dark px-3 py-3 text-center border border-border-subtle">
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{completedLessons}</p>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Lessons</p>
                 </div>
               </div>
@@ -158,7 +160,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Dashboard Tabs Header */}
-        <div className="flex border-b border-gray-200 dark:border-gray-800">
+        <div className="flex flex-wrap gap-1 border-b border-border-subtle">
           <button
             onClick={() => setActiveTab('saved')}
             className={`pb-3 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
@@ -184,6 +186,20 @@ export const Dashboard: React.FC = () => {
             <span>⏱ Recent History</span>
             <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
               {analysisHistory.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('learning')}
+            className={`pb-3 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'learning'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <span>Learning progress</span>
+            <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              {learningPercent}%
             </span>
           </button>
         </div>
@@ -354,7 +370,7 @@ export const Dashboard: React.FC = () => {
         )}
 
         {/* TAB 2: LEARNING MASTERY & BADGES */}
-        {false && (
+        {activeTab === 'learning' && (
           <div className="space-y-8">
             {/* Badges Grid */}
             <div className="rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 p-6 sm:p-8 space-y-6">

@@ -4,7 +4,7 @@ import { SEO } from '@/components/SEO';
 
 const Quiz: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
         title="Complexity Quiz"
         description="Test your understanding of time and space complexity with a focused Big-O quiz."

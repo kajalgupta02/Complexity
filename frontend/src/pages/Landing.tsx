@@ -74,7 +74,7 @@ export const Landing: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors selection:bg-indigo-500 selection:text-white">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors selection:bg-indigo-500 selection:text-white">
       <SEO
         title="Complexity — The Interview Candidate's Big-O Sidekick"
         description="Instant Big-O complexity analyzer for 13 programming languages. Track Blind 75 and NeetCode 150 solutions, study DSA cheatsheets, and master algorithmic performance."
@@ -192,7 +192,7 @@ export const Landing: React.FC = () => {
             {TARGET_AUDIENCES.map((item, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-[#f8fafc] dark:bg-[#111726] border border-gray-200 dark:border-gray-800 flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-colors"
+                className="p-6 rounded-2xl bg-bg-secondary dark:bg-bg-secondary-dark border border-border-subtle flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-colors"
               >
                 <div className="space-y-2">
                   <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl">
@@ -212,7 +212,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* HOW IT WORKS: THREE STEPS */}
-      <section id="how-it-works" className="py-16 sm:py-20 border-t border-gray-200/80 dark:border-gray-800/80 bg-[#f8fafc] dark:bg-[#090d16]">
+      <section id="how-it-works" className="py-16 sm:py-20 border-t border-gray-200/80 dark:border-gray-800/80 bg-bg-primary dark:bg-bg-primary-dark">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
@@ -265,7 +265,7 @@ export const Landing: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-7 rounded-3xl bg-[#f8fafc] dark:bg-[#111726] border border-gray-200 dark:border-gray-800 space-y-4">
+            <div className="p-7 rounded-3xl bg-bg-secondary dark:bg-bg-secondary-dark border border-border-subtle space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl">
                 ⏱️
               </div>
@@ -286,7 +286,7 @@ export const Landing: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-7 rounded-3xl bg-[#f8fafc] dark:bg-[#111726] border border-gray-200 dark:border-gray-800 space-y-4">
+            <div className="p-7 rounded-3xl bg-bg-secondary dark:bg-bg-secondary-dark border border-border-subtle space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-2xl">
                 💾
               </div>
@@ -308,7 +308,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* ABOUT COMPLEXITY SECTION */}
-      <section className="py-16 sm:py-20 border-t border-gray-200/80 dark:border-gray-800/80 bg-[#f8fafc] dark:bg-[#090d16]">
+      <section className="py-16 sm:py-20 border-t border-gray-200/80 dark:border-gray-800/80 bg-bg-primary dark:bg-bg-primary-dark">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10 items-center">
             <div className="space-y-5">

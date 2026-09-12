@@ -23,14 +23,22 @@
      Colors - Light Mode
      ============= */
   --color-bg-primary: var(--bg-base);
+  --color-bg-primary-dark: var(--bg-base);
   --color-bg-secondary: var(--bg-surface);
+  --color-bg-secondary-dark: var(--bg-surface);
   --color-bg-tertiary: #eef1f6;
+  --color-bg-tertiary-dark: #eef1f6;
   --color-bg-elevated: var(--bg-overlay);
+  --color-bg-elevated-dark: var(--bg-overlay);
 
   --color-text-primary: #0f172a;
+  --color-text-primary-dark: #0f172a;
   --color-text-secondary: #334155;
+  --color-text-secondary-dark: #334155;
   --color-text-tertiary: #64748b;
+  --color-text-tertiary-dark: #64748b;
   --color-text-muted: #94a3b8;
+  --color-text-muted-dark: #94a3b8;
   
   --accent-50: #eef2ff;
   --accent-100: #e0e7ff;
@@ -84,14 +92,22 @@ html.dark {
   --accent-glow: rgba(99, 102, 241, 0.28);
 
   --color-bg-primary: var(--bg-base);
+  --color-bg-primary-dark: var(--bg-base);
   --color-bg-secondary: var(--bg-surface);
+  --color-bg-secondary-dark: var(--bg-surface);
   --color-bg-tertiary: #182033;
+  --color-bg-tertiary-dark: #182033;
   --color-bg-elevated: var(--bg-overlay);
+  --color-bg-elevated-dark: var(--bg-overlay);
 
   --color-text-primary: #f8fafc;
+  --color-text-primary-dark: #f8fafc;
   --color-text-secondary: #e2e8f0;
+  --color-text-secondary-dark: #e2e8f0;
   --color-text-tertiary: #94a3b8;
+  --color-text-tertiary-dark: #94a3b8;
   --color-text-muted: #64748b;
+  --color-text-muted-dark: #64748b;
   
   --accent-50: #eef2ff;
   --accent-100: #e0e7ff;
@@ -141,8 +157,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.page-shell {
+  min-height: calc(100vh - 4.25rem);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 18rem),
+    var(--gradient-bg);
+}
+
+html.dark .page-shell {
+  background:
+    linear-gradient(180deg, rgba(17, 23, 38, 0.55), transparent 18rem),
+    var(--gradient-bg);
+}
+
+.page-container {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 3vw, 3rem) clamp(1rem, 3vw, 2rem) clamp(3rem, 6vw, 5rem);
+}
+
 h1, h2, h3, h4, button, input, select, textarea {
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 button, a {

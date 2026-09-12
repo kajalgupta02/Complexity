@@ -40,7 +40,7 @@ export const Share: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+      <div className="page-shell flex items-center justify-center p-6 text-center">
         <div>
           <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{error}</h1>
           <Button onClick={() => navigate('/')}>Return Home</Button>
@@ -50,7 +50,7 @@ export const Share: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] py-10 px-4 sm:px-6 text-gray-900 dark:text-gray-100">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark">
       <SEO
         title="Shared Complexity Analysis Snippet"
         description="View shared source code snippet and its Big-O time and space complexity results."

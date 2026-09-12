@@ -6,7 +6,7 @@ export const NotFound: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] dark:bg-[#090d16] p-6 text-center text-gray-900 dark:text-gray-100">
+    <div className="page-shell flex flex-col items-center justify-center p-6 text-center text-text-primary dark:text-text-primary-dark">
       <SEO
         title="404 — Page Not Found"
         description="The requested page was not found on Complexity."

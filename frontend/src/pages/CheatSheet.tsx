@@ -171,7 +171,7 @@ export const CheatSheet: React.FC = () => {
   }, [search, selectedCategory]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-gray-900 dark:text-gray-100 transition-colors py-10 px-4 sm:px-6">
+    <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
         title="Big-O & Data Structure Complexity Cheat Sheet"
         description="Comprehensive Big-O complexity reference table for Data Structures, Sorting, Searching, and Graph algorithms with time and space bounds."

@@ -380,22 +380,25 @@ export const Analyzer: React.FC = () => {
               />
             ) : (
               /* Welcoming Empty State */
-              <div className="p-8 sm:p-12 text-center rounded-3xl bg-white dark:bg-[#111726] border border-gray-200 dark:border-gray-800 shadow-sm space-y-5 min-h-[460px] flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-3xl shadow-sm border border-indigo-500/20">
+              <div className="flex min-h-[460px] flex-col items-center justify-center space-y-6 rounded-[28px] border border-slate-200 bg-white/90 p-8 text-center shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-950/70 dark:shadow-[0_18px_44px_rgba(2,6,23,0.42)] sm:p-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500/12 to-cyan-500/12 text-3xl text-indigo-600 shadow-sm dark:border-indigo-500/20 dark:text-indigo-300">
                   ⚡
                 </div>
 
-                <div className="space-y-2 max-w-sm">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                <div className="max-w-md space-y-3">
+                  <h3 className="text-2xl font-extrabold tracking-[-0.04em] text-slate-900 dark:text-slate-50">
                     Code Complexity Results
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                    Select your programming language, enter or paste code into the editor, and click <strong className="text-gray-800 dark:text-gray-200">⚡ Analyze</strong>.
+                  <p className="text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-[0.96rem]">
+                    Select your language, paste your solution, and click{' '}
+                    <span className="font-semibold text-slate-900 dark:text-slate-50">Analyze</span>{' '}
+                    to see the time and space complexity explained clearly.
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 dark:border-gray-800/80 w-full max-w-xs text-[11px] text-gray-400">
-                  🔒 100% Client-Side Static Analysis · 13 Languages
+                <div className="flex w-full max-w-xs items-center justify-center gap-2 border-t border-slate-200 pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                  <span>🔒</span>
+                  <span>Static analysis · 13 languages</span>
                 </div>
               </div>
             )}

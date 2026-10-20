@@ -126,4 +126,86 @@ describe('analyzeCode', () => {
     const result = analyzeCode(code);
     expect(result.isPartialAnalysis).toBe(true);
   });
+
+  describe('Bisection & Logarithmic Interval Progression', () => {
+    it('detects standard binary search pointer bisection as O(log n)', () => {
+      const code = `function binarySearch(arr, target) {
+        let left = 0, right = arr.length - 1;
+        while (left <= right) {
+          let mid = Math.floor((left + right) / 2);
+          if (arr[mid] === target) return mid;
+          if (arr[mid] < target) left = mid + 1;
+          else right = mid - 1;
+        }
+        return -1;
+      }`;
+      const result = analyzeCode(code);
+      expect(result.patterns.hasLogarithmicStep).toBe(true);
+      expect(result.timeComplexity).toBe('O(log n)');
+    });
+
+    it('detects bitshift midpoint bisection as O(log n)', () => {
+      const code = `function findBound(lo, hi) {
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (check(mid)) hi = mid;
+          else lo = mid + 1;
+        }
+        return lo;
+      }`;
+      const result = analyzeCode(code);
+      expect(result.patterns.hasLogarithmicStep).toBe(true);
+      expect(result.timeComplexity).toBe('O(log n)');
+    });
+
+    it('detects subtraction midpoint low + (high - low) / 2 as O(log n)', () => {
+      const code = `function search(nums, target) {
+        let low = 0, high = nums.length - 1;
+        while (low <= high) {
+          let mid = low + Math.floor((high - low) / 2);
+          if (nums[mid] === target) return mid;
+          if (nums[mid] < target) low = mid + 1;
+          else high = mid - 1;
+        }
+        return -1;
+      }`;
+      const result = analyzeCode(code);
+      expect(result.patterns.hasLogarithmicStep).toBe(true);
+      expect(result.timeComplexity).toBe('O(log n)');
+    });
+
+    it('does NOT classify loops with unrelated division as logarithmic (negative test)', () => {
+      const code = `function process(arr) {
+        let sum = 0;
+        for (let i = 0; i < arr.length; i++) {
+          const half = arr[i] / 2; // division present but loop step is linear i++
+          sum += half;
+        }
+        return sum;
+      }`;
+      const result = analyzeCode(code);
+      expect(result.patterns.hasLogarithmicStep).toBe(false);
+      expect(result.timeComplexity).toBe('O(n)');
+    });
+
+    it('detects nested loop containing binary search as O(n log n)', () => {
+      const code = `function twoSumBinarySearch(arr) {
+        let count = 0;
+        for (let i = 0; i < arr.length; i++) {
+          let left = i + 1, right = arr.length - 1;
+          while (left <= right) {
+            let mid = Math.floor((left + right) / 2);
+            if (arr[mid] + arr[i] === 0) { count++; break; }
+            if (arr[mid] + arr[i] < 0) left = mid + 1;
+            else right = mid - 1;
+          }
+        }
+        return count;
+      }`;
+      const result = analyzeCode(code);
+      expect(result.patterns.hasLogarithmicStep).toBe(true);
+      expect(result.timeComplexity).toBe('O(n log n)');
+    });
+  });
 });
+

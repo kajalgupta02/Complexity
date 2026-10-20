@@ -1,39 +1,80 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
-import 'dotenv/config';
-import { analyzeCode, type SupportedLanguage } from './analyzer/index';
+import { config } from './config/env.js';
+import { initDatabase } from './db.js';
+import { healthRouter } from './routes/health.routes.js';
+import { analyzeRouter } from './routes/analyze.routes.js';
+import { optimizeRouter } from './routes/optimize.routes.js';
+import { authRouter } from './routes/auth.routes.js';
+import { snippetsRouter } from './routes/snippets.routes.js';
+import { benchmarkRouter } from './routes/benchmark.routes.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+export const app = express();
 
-app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+// Initialize database tables & seed data on server boot
+initDatabase();
 
-// Health Check Endpoint
-app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
-    service: 'big-o-analyzer-backend',
-    timestamp: new Date().toISOString()
-  });
-});
+// 1. Trust Proxy Configuration
+// Configures reverse proxy topology safely to derive true client IPs for rate limiting
+if (config.trustProxy !== false) {
+  app.set('trust proxy', config.trustProxy);
+}
 
-// Code Analysis Endpoint
-app.post('/api/analyze', (req: Request, res: Response) => {
-  try {
-    const { code, language } = req.body || {};
-    if (typeof code !== 'string') {
-      return res.status(400).json({ error: 'Field "code" (string) is required' });
-    }
+// 2. Multi-Origin CORS Configuration
+// Parse configured origins safely (comma-separated list or single origin)
+const configuredOrigins = config.corsOrigin
+  .split(',')
+  .map((o) => o.trim())
+  .filter((o) => o.length > 0);
 
-    const result = analyzeCode(code, language as SupportedLanguage);
-    return res.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Analysis failed';
-    return res.status(500).json({ error: message });
+// In development, ensure standard local development origins are included
+if (config.nodeEnv !== 'production') {
+  if (!configuredOrigins.includes('http://localhost:3000')) {
+    configuredOrigins.push('http://localhost:3000');
   }
-});
+  if (!configuredOrigins.includes('http://127.0.0.1:3000')) {
+    configuredOrigins.push('http://127.0.0.1:3000');
+  }
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Big-O Analyzer Backend API running at http://localhost:${PORT}`);
-});
+app.use(
+  cors({
+    origin: (requestOrigin, callback) => {
+      // Allow non-browser requests (e.g. mobile apps, curl, server-to-server)
+      if (!requestOrigin) return callback(null, true);
+
+      // If wildcard is configured, allow requesting origin with credentials
+      if (configuredOrigins.includes('*') || configuredOrigins.includes(requestOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: Origin "${requestOrigin}" is not allowed.`));
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: '100kb' }));
+
+// Route Mounts
+app.use('/api/health', healthRouter);
+app.use('/api/analyze', analyzeRouter);
+app.use('/api/optimize', optimizeRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/snippets', snippetsRouter);
+app.use('/api/benchmark', benchmarkRouter);
+
+// Centralized Error Handler (must be registered after all routes)
+app.use(errorHandler);
+
+// Start server if executed directly
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(config.port, () => {
+    console.log(`🚀 Complexity Production API running at http://localhost:${config.port}`);
+    console.log(`📡 AI Optimization Provider: ${config.aiProvider.toUpperCase()} (${config.aiModel})`);
+    console.log(
+      `🔒 Rate limiting active on /api/optimize (${config.rateLimitMaxRequests} req / ${config.rateLimitWindowMs / 60000}m)`
+    );
+  });
+}

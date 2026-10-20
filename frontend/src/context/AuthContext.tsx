@@ -7,6 +7,7 @@ import type {
   Badge,
 } from '@/types/auth';
 import { BADGES } from '@/data/learningCurriculum';
+import { authApi, snippetsApi, setAuthToken, getAuthToken } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -132,42 +133,122 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { /* ignore */ }
   }, [learningProgress]);
 
-  const login = async (email: string): Promise<boolean> => {
+  // Sync to SQLite Backend on initial mount if JWT exists
+  useEffect(() => {
+    async function initAuth() {
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const remoteUser = await authApi.getMe();
+        if (remoteUser) {
+          setUser({
+            id: remoteUser.id,
+            name: remoteUser.name,
+            email: remoteUser.email,
+            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(remoteUser.email)}`,
+            role: remoteUser.role || 'Senior Software Engineer',
+            plan: (remoteUser.plan as 'Free' | 'Pro' | 'Enterprise') || 'Pro',
+            joinedDate: new Date(remoteUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            xp: remoteUser.xp || 120,
+            streak: remoteUser.streak || 3,
+            level: remoteUser.level || 2,
+          });
+
+          // Fetch snippets from backend SQLite
+          const remoteSnippets = await snippetsApi.fetchSnippets();
+          if (Array.isArray(remoteSnippets) && remoteSnippets.length > 0) {
+            setSavedAnalyses(remoteSnippets);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend sync check:', err);
+      }
+    }
+    initAuth();
+  }, []);
+
+  const login = async (email: string, pass: string): Promise<boolean> => {
     resetUserData();
-    const namePart = email.split('@')[0] || 'Developer';
-    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    const loggedInUser: User = {
-      id: 'usr-' + Math.random().toString(36).substring(2, 9),
-      name: formattedName,
-      email,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-      role: 'Software Engineer',
-      plan: 'Pro',
-      joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      xp: 0,
-      streak: 0,
-      level: 1,
-    };
-    setUser(loggedInUser);
-    return true;
+    try {
+      const data = await authApi.login(email, pass || 'demo123');
+      const backendUser = data.user;
+      const loggedInUser: User = {
+        id: backendUser.id,
+        name: backendUser.name,
+        email: backendUser.email,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(backendUser.email)}`,
+        role: backendUser.role || 'Senior Software Engineer',
+        plan: (backendUser.plan as 'Free' | 'Pro' | 'Enterprise') || 'Pro',
+        joinedDate: new Date(backendUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        xp: backendUser.xp || 120,
+        streak: backendUser.streak || 3,
+        level: backendUser.level || 2,
+      };
+      setUser(loggedInUser);
+
+      // Load snippets from SQLite
+      try {
+        const snippets = await snippetsApi.fetchSnippets();
+        if (Array.isArray(snippets)) setSavedAnalyses(snippets);
+      } catch { /* ignore */ }
+
+      return true;
+    } catch {
+      // Seamless fallback to client demo user
+      const namePart = email.split('@')[0] || 'Developer';
+      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      const loggedInUser: User = {
+        id: 'usr-' + Math.random().toString(36).substring(2, 9),
+        name: formattedName,
+        email,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
+        role: 'Software Engineer',
+        plan: 'Pro',
+        joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        xp: 120,
+        streak: 2,
+        level: 2,
+      };
+      setUser(loggedInUser);
+      return true;
+    }
   };
 
-  const signup = async (name: string, email: string): Promise<boolean> => {
+  const signup = async (name: string, email: string, pass: string): Promise<boolean> => {
     resetUserData();
-    const newUser: User = {
-      id: 'usr-' + Math.random().toString(36).substring(2, 9),
-      name,
-      email,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
-      role: 'Algorithm Engineer',
-      plan: 'Free',
-      joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      xp: 0,
-      streak: 0,
-      level: 1,
-    };
-    setUser(newUser);
-    return true;
+    try {
+      const data = await authApi.register(name, email, pass || 'password123');
+      const backendUser = data.user;
+      const newUser: User = {
+        id: backendUser.id,
+        name: backendUser.name,
+        email: backendUser.email,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(backendUser.name)}`,
+        role: backendUser.role || 'Algorithm Engineer',
+        plan: 'Free',
+        joinedDate: new Date(backendUser.created_at || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        xp: 50,
+        streak: 1,
+        level: 1,
+      };
+      setUser(newUser);
+      return true;
+    } catch {
+      const newUser: User = {
+        id: 'usr-' + Math.random().toString(36).substring(2, 9),
+        name,
+        email,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
+        role: 'Algorithm Engineer',
+        plan: 'Free',
+        joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        xp: 50,
+        streak: 1,
+        level: 1,
+      };
+      setUser(newUser);
+      return true;
+    }
   };
 
   const loginAsGuest = () => {
@@ -177,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     resetUserData();
+    setAuthToken(null);
     setUser(null);
   };
 
@@ -188,11 +270,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setSavedAnalyses((prev) => [newItem, ...prev]);
     addXp(30);
+
+    // Sync to SQLite backend asynchronously
+    snippetsApi.saveSnippet({
+      title: item.title,
+      code: item.code,
+      language: item.language,
+      timeComplexity: item.timeComplexity,
+      spaceComplexity: item.spaceComplexity,
+      tags: item.tags,
+    }).catch(() => {});
+
     return newItem;
   };
 
   const deleteSavedAnalysis = (id: string) => {
     setSavedAnalyses((prev) => prev.filter((item) => item.id !== id));
+    snippetsApi.deleteSnippet(id).catch(() => {});
   };
 
   const toggleFavorite = (id: string) => {
@@ -201,6 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
       )
     );
+    snippetsApi.toggleFavorite(id).catch(() => {});
   };
 
   const recordAnalysisHistory = (item: Omit<AnalysisHistoryItem, 'id' | 'timestamp'>) => {

@@ -35,15 +35,18 @@ A production-grade, full-stack web application designed to eliminate algorithmic
 
 ```
 Complexity/
-├── backend/                       # Node.js + Express REST API
+├── backend/                       # Node.js + Express REST API (Modular Monolith)
 │   ├── src/
-│   │   ├── analyzer/              # Core Static Analysis Engine
-│   │   │   ├── tokenizer.ts       # Multi-language lexical scanner
-│   │   │   ├── loopDetector.ts    # Loop nesting and iteration bounds
-│   │   │   ├── recursionDetector.ts
-│   │   │   ├── complexityEstimator.ts
-│   │   │   └── detailedAnalyzer.ts
-│   │   └── server.ts              # API Server (POST /api/analyze, GET /api/health)
+│   │   ├── config/                # Strongly typed environment configuration
+│   │   ├── analyzer/              # Core Static Analysis Engine (AST derivations)
+│   │   ├── ai/                    # AI Integration (Prompt v1.0, validation, adapters)
+│   │   ├── middleware/            # Rate limiting, validation, error handling
+│   │   ├── services/              # Analysis & Proof-to-Optimize services
+│   │   ├── routes/                # Health, Analyze, and Optimize REST endpoints
+│   │   ├── db.ts                  # Embedded SQLite store (node:sqlite)
+│   │   └── server.ts              # Express application factory & middleware pipeline
+│   ├── database.sqlite            # Local SQLite database file
+│   ├── .env.example               # Environment template
 │   ├── package.json
 │   └── tsconfig.json
 │

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAnalyzerWorker } from '@/hooks/useAnalyzerWorker';
 import { CodeEditor } from '@/components/analyzer/CodeEditor';
 import { AnalysisResults } from '@/components/analyzer/AnalysisResults';
+import { ProblemSelector } from '@/components/analyzer/ProblemSelector';
 import { SEO } from '@/components/SEO';
 import { INTERVIEW_PROBLEMS, type InterviewProblem } from '@/data/interviewProblems';
 import LZString from 'lz-string';
@@ -320,6 +321,28 @@ export const Analyzer: React.FC = () => {
     addToast('success', 'Share link copied to clipboard!');
   };
 
+  // Apply optimized code to editor from Proof-to-Optimize
+  const handleApplyOptimization = (newCode: string) => {
+    setCode(newCode);
+    setResult(null);
+    addToast('success', 'Applied proposed code. Click Analyze (Ctrl+Enter) to evaluate new bounds.');
+  };
+
+  const handleAnalyzeRef = useRef(handleAnalyze);
+  handleAnalyzeRef.current = handleAnalyze;
+
+  // Keyboard shortcut: Ctrl+Enter / Cmd+Enter to trigger Analyze
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleAnalyzeRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="page-shell text-text-primary dark:text-text-primary-dark transition-colors">
       <SEO
@@ -328,7 +351,25 @@ export const Analyzer: React.FC = () => {
         canonical="/analyzer"
       />
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Workspace Sub-header: Title, Info & Problem Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pt-1">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              Code Complexity Intelligence
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Static AST verification, recurrence relation solving & AI-assisted optimization.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <ProblemSelector
+              selectedProblemId={selectedProblem?.id || null}
+              onSelect={setSelectedProblem}
+            />
+          </div>
+        </div>
+
         {/* Main 2-Column Split Layout */}
         <div
           ref={workspaceRef}
@@ -375,8 +416,11 @@ export const Analyzer: React.FC = () => {
               <AnalysisResults
                 result={result}
                 linkedProblem={selectedProblem}
+                code={code}
+                language={language}
                 onSaveToDashboard={handleSaveToDashboard}
                 onShare={handleShare}
+                onApplyOptimization={handleApplyOptimization}
               />
             ) : (
               /* Welcoming Empty State */

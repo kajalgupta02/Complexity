@@ -99,28 +99,38 @@ export function stripCommentsAndStrings(source: string): string {
       continue;
     }
 
-    // 6. Check for regex literal
-    const isRegexStart =
-      i === 0 ||
-      /[\s([{;,=!<>+\-*/%^&|?]/.test(source[i - 1]);
-    if (source[i] === '/' && isRegexStart) {
-      result += '/ /'; // Replace with placeholder
-      i++;
-      while (i < len) {
-        if (source[i] === '\\') {
-          i += 2;
+    // 6. Check for regex literal vs division operator
+    let prevIdx = i - 1;
+    while (prevIdx >= 0 && /\s/.test(source[prevIdx])) {
+      prevIdx--;
+    }
+    const prevChar = prevIdx >= 0 ? source[prevIdx] : '';
+    // A slash following an expression ender (closing paren/bracket, variable, number) is division, NOT regex
+    const isDivision = /[)\]\w$]/.test(prevChar);
+
+    if (source[i] === '/' && !isDivision) {
+      // Find closing slash on the same line (regex literals in JS/TS cannot span unescaped newlines)
+      let closeSlash = -1;
+      let j = i + 1;
+      while (j < len && source[j] !== '\n') {
+        if (source[j] === '\\') {
+          j += 2;
           continue;
         }
-        if (source[i] === '/') {
-          i++;
-          while (i < len && /[gimsuy]/.test(source[i])) {
-            i++;
-          }
+        if (source[j] === '/') {
+          closeSlash = j;
           break;
         }
-        i++;
+        j++;
       }
-      continue;
+      if (closeSlash !== -1) {
+        result += '/ /';
+        i = closeSlash + 1;
+        while (i < len && /[gimsuy]/.test(source[i])) {
+          i++;
+        }
+        continue;
+      }
     }
 
     // 7. Otherwise, add character to result

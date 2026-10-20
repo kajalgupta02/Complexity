@@ -273,26 +273,39 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         </div>
 
         {/* Analyze Button */}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onAnalyze}
-          disabled={isAnalyzing || !code.trim()}
-          className="font-bold px-4 py-1.5 shadow-md shadow-indigo-500/20"
-          aria-label="Analyze complexity"
-        >
-          {isAnalyzing ? (
-            <span className="flex items-center gap-1.5">
-              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Analyzing...
+        <div className="flex items-center gap-2">
+          {!code.trim() && (
+            <span className="text-[11px] text-amber-400/80 hidden sm:inline">
+              Enter code to analyze
             </span>
-          ) : (
-            <span>⚡ Analyze</span>
           )}
-        </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onAnalyze}
+            disabled={isAnalyzing || !code.trim()}
+            className="font-bold px-4 py-1.5 shadow-md shadow-indigo-500/20"
+            aria-label="Analyze complexity (Ctrl+Enter)"
+            title="Analyze complexity (Ctrl + Enter)"
+          >
+            {isAnalyzing ? (
+              <span className="flex items-center gap-1.5">
+                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Analyzing...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <span>⚡ Analyze</span>
+                <kbd className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-indigo-700/60 text-indigo-100">
+                  Ctrl+↵
+                </kbd>
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* CodeMirror Surface */}
@@ -307,9 +320,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           <span>{code.split('\n').length} lines</span>
           <span>{code.length} characters</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Private Client Analysis</span>
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>Static AST Parser (13 Languages)</span>
         </div>
       </div>
     </div>
